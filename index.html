@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="REFLEX — independent exit-dynamics research for The Standard Reserve." />
+  <title>REFLEX — Does one exit cause the next?</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="paper-noise" aria-hidden="true"></div>
+  <header class="site-header frame">
+    <div class="wordmark-wrap">
+      <a class="wordmark" href="#top">REFLEX</a>
+      <span class="independent-tag">independent mechanism research</span>
+    </div>
+    <nav aria-label="Primary navigation">
+      <a href="#simulation">Simulation</a>
+      <a href="#stability">Stability map</a>
+      <a href="#methodology">Methodology</a>
+      <a href="#sources">Sources</a>
+    </nav>
+    <div class="header-status"><span></span> assumption-based model</div>
+  </header>
+
+  <main id="top">
+    <section class="hero frame">
+      <div class="eyebrow">THE STANDARD RESERVE / EXIT DYNAMICS / 2026</div>
+      <div class="hero-grid">
+        <div>
+          <h1>Does one exit<br><em>cause the next?</em></h1>
+        </div>
+        <div class="hero-copy">
+          <p>REFLEX asks a narrow question the existing single-shot calculators do not: when an exit changes the resolution fee, how does that new fee shape the next round of exit decisions?</p>
+          <p class="muted">This is not a prediction, an audit, or an official Standard Reserve product. It is a reproducible sensitivity model built around explicitly labeled assumptions.</p>
+          <div class="hero-actions">
+            <a class="text-button" href="#simulation">Run the baseline ↘</a>
+            <a class="text-button subdued" href="#methodology">Read the model</a>
+          </div>
+        </div>
+      </div>
+      <div class="status-strip">
+        <div><b>MECHANISM</b><span>published shape</span></div>
+        <div><b>PARAMETERS</b><span>partly redacted</span></div>
+        <div><b>BEHAVIOR</b><span>REFLEX assumption</span></div>
+        <div><b>CONTRACTS</b><span>not modeled</span></div>
+      </div>
+    </section>
+
+    <section id="simulation" class="section frame">
+      <div class="section-kicker"><span>01</span><span>Simulation</span></div>
+      <div class="simulation-layout">
+        <aside class="controls-panel">
+          <div class="panel-heading">
+            <h2>Set the assumptions.</h2>
+            <p>Protocol launch values remain redacted. Change them deliberately; the result belongs to the assumptions you choose.</p>
+          </div>
+
+          <div class="preset-row" role="group" aria-label="Scenario presets">
+            <button data-preset="baseline">Baseline</button>
+            <button data-preset="contagion">Contagion-heavy</button>
+            <button data-preset="deterrence">Deterrence-heavy</button>
+          </div>
+
+          <div class="control-group">
+            <div class="control-heading"><span>BEHAVIORAL ASSUMPTIONS</span><span class="pill assumption">MODEL</span></div>
+            <label><span>Initial exit shock <i id="initialShockValue"></i></span><input id="initialShock" type="range" min="0" max="50" step="1" value="10" /></label>
+            <label><span>Contagion strength <i id="contagionValue"></i></span><input id="contagion" type="range" min="0" max="30" step="0.5" value="18" /></label>
+            <label><span>Fee deterrence <i id="deterrenceValue"></i></span><input id="deterrence" type="range" min="0" max="20" step="0.5" value="8" /></label>
+          </div>
+
+          <div class="control-group">
+            <div class="control-heading"><span>PROTOCOL PARAMETERS</span><span class="pill assumption">REDACTED</span></div>
+            <label><span>Fee floor <i id="feeFloorValue"></i></span><input id="feeFloor" type="range" min="0" max="20" step="1" value="2" /></label>
+            <label><span>Fee ceiling <i id="feeCeilingValue"></i></span><input id="feeCeiling" type="range" min="10" max="80" step="1" value="40" /></label>
+            <label><span>Fee saturation <i id="saturationValue"></i></span><input id="saturation" type="range" min="10" max="100" step="5" value="50" /></label>
+            <label><span>Simulation horizon <i id="horizonValue"></i></span><input id="horizon" type="range" min="10" max="60" step="1" value="30" /></label>
+          </div>
+        </aside>
+
+        <div class="results-column">
+          <article id="classificationCard" class="classification-card" data-state="stable">
+            <div class="result-label">MODEL RESULT / UNDER THESE ASSUMPTIONS</div>
+            <div class="classification-row"><strong id="classification">—</strong><span id="classificationSub">—</span></div>
+            <p id="classificationReason"></p>
+          </article>
+
+          <div class="metric-grid">
+            <div><span>Exit pressure</span><strong id="metricPressure">—</strong></div>
+            <div><span>Resolution fee</span><strong id="metricFee">—</strong></div>
+            <div><span>Remaining</span><strong id="metricRemaining">—</strong></div>
+            <div><span>Cumulative exits</span><strong id="metricExited">—</strong></div>
+            <div><span>Modeled burn</span><strong id="metricBurn">—</strong></div>
+            <div><span>Redistribution</span><strong id="metricRedistribution">—</strong></div>
+          </div>
+
+          <article class="chart-card">
+            <div class="chart-head"><div><span class="small-label">TRAJECTORY</span><h3>Exit activity feeds back into the next round.</h3></div><span id="chartScale" class="chart-scale"></span></div>
+            <svg id="trajectorySvg" viewBox="0 0 900 330" role="img" aria-label="Exit rate, resolution fee and exit pressure over simulation rounds"></svg>
+            <div class="chart-legend"><span class="exit-key">Exit rate</span><span class="fee-key">Resolution fee</span><span class="pressure-key">Exit pressure</span></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section frame mechanism-section">
+      <div class="section-kicker"><span>02</span><span>Feedback loop</span></div>
+      <div class="section-intro"><h2>The mechanism is not the finding.<br>The feedback is.</h2><p>Each round updates the state that the next round sees. The model asks whether deterrence catches up with contagion before the exit path becomes self-reinforcing.</p></div>
+      <div class="flow-row">
+        <div><small>RECENT EXITS</small><b id="traceExit">—</b></div><i>→</i>
+        <div><small>PRESSURE</small><b id="tracePressure">—</b></div><i>→</i>
+        <div><small>FEE</small><b id="traceFee">—</b></div><i>→</i>
+        <div><small>RESPONSE SCORE</small><b id="traceResponse">—</b></div><i>↻</i>
+      </div>
+    </section>
+
+    <section id="stability" class="section frame">
+      <div class="section-kicker"><span>03</span><span>Stability map</span></div>
+      <div class="section-intro"><h2>One result proves little.<br>A region is more useful.</h2><p>Every cell below runs the full multi-round model. Horizontal movement increases contagion; vertical movement increases how strongly the fee deters exit. This is sensitivity analysis, not a prediction map.</p></div>
+      <div class="heatmap-shell">
+        <div class="heat-y">FEE DETERRENCE ↑</div>
+        <div class="heat-canvas-wrap"><canvas id="heatmap" aria-label="Stability map over contagion and fee deterrence"></canvas><div id="heatTip" class="heat-tip"></div></div>
+        <div class="heat-x">CONTAGION STRENGTH →</div>
+      </div>
+      <div class="heat-legend"><span class="stable-swatch">Stable</span><span class="borderline-swatch">Borderline</span><span class="cascade-swatch">Cascade</span></div>
+    </section>
+
+    <section class="section frame">
+      <div class="section-kicker"><span>04</span><span>Trace</span></div>
+      <div class="trace-heading"><div><h2>Nothing hidden behind the chart.</h2><p>Inspect every round or export the run. Same inputs, same result.</p></div><div class="export-actions"><button id="downloadCsv">Download CSV</button><button id="downloadJson">Download JSON</button></div></div>
+      <div class="table-wrap"><table><thead><tr><th>Round</th><th>Exit rate</th><th>Pressure</th><th>Fee</th><th>Remaining</th><th>Response score</th></tr></thead><tbody id="traceBody"></tbody></table></div>
+    </section>
+
+    <section id="methodology" class="section frame methodology-section">
+      <div class="section-kicker"><span>05</span><span>Methodology</span></div>
+      <div class="method-grid">
+        <div class="method-lead"><h2>Published mechanism.<br>Explicit behavior model.</h2><p>REFLEX deliberately separates the protocol shape we can source from the behavioral layer we invented for research.</p></div>
+        <div class="equation-block"><span class="pill published">PUBLISHED SHAPE</span><code>P = W / (D + W)</code><p>Trailing withdrawals over withdrawn + still-held value. The methodology source includes a redacted denominator guard; REFLEX does not invent it.</p></div>
+        <div class="equation-block"><span class="pill published">PUBLISHED SHAPE</span><code>fee = floor + (ceiling − floor) × q²</code><p>REFLEX uses a normalized quadratic interpolation where <code>q = clamp(P / saturation, 0, 1)</code>. Floor, ceiling and saturation stay assumptions until launch.</p></div>
+        <div class="equation-block assumption-box"><span class="pill assumption">REFLEX MODEL</span><code>score = b + c·exitₜ₋₁ − d·feeₜ</code><code>Pr(exit) = logistic(β·score)</code><p>This is not a Standard Reserve formula and does not claim to model real psychology. It only exposes how different sensitivities alter feedback.</p></div>
+      </div>
+      <div class="definitions">
+        <div><b>b</b><span>fixed baseline exit bias</span></div><div><b>c</b><span>contagion strength</span></div><div><b>d</b><span>fee deterrence</span></div><div><b>β</b><span>response sharpness</span></div>
+      </div>
+    </section>
+
+    <section id="sources" class="section frame sources-section">
+      <div class="section-kicker"><span>06</span><span>Sources & status</span></div>
+      <div class="section-intro"><h2>Confidence is part of the interface.</h2><p>The official contracts are not modeled. Protocol parameters described as redacted remain assumptions. The existing independent methodology is cited rather than silently copied.</p></div>
+      <div id="sourceList" class="source-list"></div>
+      <div class="source-links">
+        <a href="https://standardreserve.xyz" target="_blank" rel="noreferrer">Standard Reserve ↗</a>
+        <a href="https://centralbank.bot/methodology.html" target="_blank" rel="noreferrer">Central Bank Bot methodology ↗</a>
+        <a href="https://centralbank.bot/simulator.html" target="_blank" rel="noreferrer">Existing simulator ↗</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="frame">
+    <div><b>REFLEX</b><span>Independent mechanism research.</span></div>
+    <p>Not affiliated with, operated by, endorsed by, or reviewed by The Standard Reserve. This model does not predict real participant behavior, does not represent deployed contracts, and is not financial advice or a security finding.</p>
+  </footer>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
