@@ -21,6 +21,12 @@ const state = {
   sculpture: null,
 };
 
+// Resolved color helper (gets actual CSS custom property value)
+function resolveColor(cssVar, fallback) {
+  const val = getComputedStyle(document.documentElement).getPropertyValue(cssVar).trim();
+  return val || fallback;
+}
+
 // Number and percentage formatters
 const formatPct = (v, digits = 1) => `${(v * 100).toFixed(digits)}%`;
 const formatNum = (v, digits = 2) => Number(v).toFixed(digits);
@@ -227,9 +233,9 @@ function linePath(values, width, height, maxY = 1) {
 function drawTrajectory(result) {
   const svg = $('#trajectorySvg');
   if (!svg) return;
-  const box = svg.viewBox.baseVal;
-  const width = box.width || 860;
-  const height = box.height || 280;
+
+  const width = 860;
+  const height = 280;
 
   const exit = result.rounds.map((r) => r.exitRate);
   const fee = result.rounds.map((r) => r.feeAfter);
@@ -237,6 +243,15 @@ function drawTrajectory(result) {
   const maxY = Math.max(0.12, ...exit, ...fee, ...pressure) * 1.15;
 
   svg.innerHTML = '';
+
+  // Resolve colors at draw time
+  const isDark = state.theme === 'dark';
+  const gridColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(20,20,18,0.08)';
+  const textColor = isDark ? '#6B6A62' : '#88877E';
+  const exitColor = isDark ? '#F3F3EE' : '#141412';
+  const feeColor  = isDark ? '#F87171' : '#B82E2B';
+  const presColor = isDark ? '#FBBF24' : '#A36B15';
+  const cursorColor = isDark ? 'rgba(255,255,255,0.35)' : 'rgba(20,20,18,0.25)';
 
   // Background Grid Lines
   for (let i = 0; i <= 4; i++) {
@@ -248,47 +263,54 @@ function drawTrajectory(result) {
     line.setAttribute('x2', String(width - 24));
     line.setAttribute('y1', String(y));
     line.setAttribute('y2', String(y));
-    line.setAttribute('class', 'chart-grid-line');
+    line.setAttribute('stroke', gridColor);
+    line.setAttribute('stroke-dasharray', '4 4');
     svg.appendChild(line);
 
     const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     label.setAttribute('x', '28');
     label.setAttribute('y', String(y - 4));
-    label.setAttribute('class', 'chart-axis-text');
+    label.setAttribute('font-family', 'JetBrains Mono, monospace');
+    label.setAttribute('font-size', '10');
+    label.setAttribute('fill', textColor);
     label.textContent = `${(val * 100).toFixed(0)}%`;
     svg.appendChild(label);
   }
 
   // Draw Series Paths
-  const series = [
-    { id: 'exit', class: 'chart-line-exit', values: exit },
-    { id: 'fee', class: 'chart-line-fee', values: fee },
-    { id: 'pressure', class: 'chart-line-pressure', values: pressure },
+  const seriesDefs = [
+    { id: 'exit',     values: exit,     stroke: exitColor, width: 2.2, dash: '' },
+    { id: 'fee',      values: fee,      stroke: feeColor,  width: 1.8, dash: '' },
+    { id: 'pressure', values: pressure, stroke: presColor, width: 1.5, dash: '5 4' },
   ];
 
-  series.forEach((s) => {
-    if (state.visibleSeries[s.id]) {
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      path.setAttribute('d', linePath(s.values, width, height, maxY));
-      path.setAttribute('class', s.class);
-      svg.appendChild(path);
-    }
+  seriesDefs.forEach((s) => {
+    if (!state.visibleSeries[s.id]) return;
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', linePath(s.values, width, height, maxY));
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', s.stroke);
+    path.setAttribute('stroke-width', String(s.width));
+    if (s.dash) path.setAttribute('stroke-dasharray', s.dash);
+    path.setAttribute('vector-effect', 'non-scaling-stroke');
+    svg.appendChild(path);
   });
 
-  // Draw Active Round Cursor Line
-  const padX = 24;
-  const usableW = width - padX * 2;
-  const activeX = padX + (state.activeRoundIndex / (result.rounds.length - 1)) * usableW;
-
-  const cursorLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-  cursorLine.setAttribute('x1', String(activeX));
-  cursorLine.setAttribute('x2', String(activeX));
-  cursorLine.setAttribute('y1', '16');
-  cursorLine.setAttribute('y2', String(height - 16));
-  cursorLine.setAttribute('stroke', state.theme === 'dark' ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.3)');
-  cursorLine.setAttribute('stroke-width', '1.5');
-  cursorLine.setAttribute('stroke-dasharray', '3 3');
-  svg.appendChild(cursorLine);
+  // Active round cursor
+  if (result.rounds.length > 1) {
+    const padX = 24;
+    const usableW = width - padX * 2;
+    const activeX = padX + (state.activeRoundIndex / (result.rounds.length - 1)) * usableW;
+    const cursorLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    cursorLine.setAttribute('x1', String(activeX));
+    cursorLine.setAttribute('x2', String(activeX));
+    cursorLine.setAttribute('y1', '16');
+    cursorLine.setAttribute('y2', String(height - 16));
+    cursorLine.setAttribute('stroke', cursorColor);
+    cursorLine.setAttribute('stroke-width', '1.5');
+    cursorLine.setAttribute('stroke-dasharray', '4 3');
+    svg.appendChild(cursorLine);
+  }
 }
 
 // ==========================================================================
@@ -414,7 +436,8 @@ function buildSweep() {
     xMin: 0, xMax: 30, xSteps: 31,
     yMin: 0, yMax: 20, ySteps: 21,
   });
-  drawHeatmap();
+  // Defer canvas drawing to ensure layout is complete
+  requestAnimationFrame(() => requestAnimationFrame(drawHeatmap));
 }
 
 function heatmapHover(event) {
@@ -616,9 +639,9 @@ function init() {
   runSimulation();
 }
 
-// Start application
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
-} else {
+// Start application — use 'load' so layout & fonts are complete before canvas draws
+if (document.readyState === 'complete') {
   init();
+} else {
+  window.addEventListener('load', init, { once: true });
 }
