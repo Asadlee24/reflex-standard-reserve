@@ -2,161 +2,409 @@ import { simulate, MODEL_DEFAULTS } from './lib/model.js';
 import { stabilitySweep } from './lib/sweep.js';
 import { resultToCsv, downloadText } from './lib/export.js';
 import { sourceRegistry } from './lib/mechanism.js';
+import { ReflexSculpture } from './lib/sculpture3d.js';
 
-const $ = (selector) => document.querySelector(selector);
-const $$ = (selector) => [...document.querySelectorAll(selector)];
+// DOM selector helpers
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => [...document.querySelectorAll(sel)];
 
+// State Management
 const state = {
+  theme: 'light',
   config: { ...MODEL_DEFAULTS },
   result: null,
   sweep: null,
+  activeRoundIndex: 0,
+  isPlaying: false,
+  playTimer: null,
+  visibleSeries: { exit: true, fee: true, pressure: true },
+  sculpture: null,
 };
 
+// Number and percentage formatters
 const formatPct = (v, digits = 1) => `${(v * 100).toFixed(digits)}%`;
 const formatNum = (v, digits = 2) => Number(v).toFixed(digits);
 
-function readControls() {
+// ==========================================================================
+// THEME MANAGEMENT (Default: Light Mode)
+// ==========================================================================
+function initTheme() {
+  const saved = localStorage.getItem('reflex_theme');
+  // Default is LIGHT unless the user explicitly saved 'dark' previously
+  const initialTheme = saved === 'dark' ? 'dark' : 'light';
+  setTheme(initialTheme);
+
+  $('#themeToggleBtn')?.addEventListener('click', () => {
+    const next = state.theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+  });
+}
+
+function setTheme(theme) {
+  state.theme = theme;
+  if (theme === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+  localStorage.setItem('reflex_theme', theme);
+
+  // Update 3D sculpture theme
+  if (state.sculpture) {
+    state.sculpture.setTheme(theme);
+  }
+
+  // Redraw canvas heatmap
+  if (state.sweep) {
+    drawHeatmap();
+  }
+
+  // Redraw SVG trajectory chart
+  if (state.result) {
+    drawTrajectory(state.result);
+  }
+}
+
+// ==========================================================================
+// URL QUERY STATE
+// ==========================================================================
+function readUrlParams() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('shock')) state.config.initialShock = Number(params.get('shock')) / 100;
+  if (params.has('contagion')) state.config.contagionStrength = Number(params.get('contagion'));
+  if (params.has('deterrence')) state.config.feeDeterrence = Number(params.get('deterrence'));
+  if (params.has('floor')) state.config.feeFloor = Number(params.get('floor')) / 100;
+  if (params.has('ceiling')) state.config.feeCeiling = Number(params.get('ceiling')) / 100;
+  if (params.has('saturation')) state.config.feeSaturation = Number(params.get('saturation')) / 100;
+  if (params.has('horizon')) state.config.horizon = Number(params.get('horizon'));
+}
+
+function syncInputsFromConfig() {
+  $('#inputInitialShock').value = Math.round(state.config.initialShock * 100);
+  $('#inputContagion').value = state.config.contagionStrength;
+  $('#inputDeterrence').value = state.config.feeDeterrence;
+  $('#inputFeeFloor').value = Math.round(state.config.feeFloor * 100);
+  $('#inputFeeCeiling').value = Math.round(state.config.feeCeiling * 100);
+  $('#inputSaturation').value = Math.round(state.config.feeSaturation * 100);
+  $('#inputHorizon').value = state.config.horizon;
+  syncControlLabels();
+}
+
+function syncConfigFromInputs() {
   state.config = {
     ...MODEL_DEFAULTS,
-    initialShock: Number($('#initialShock').value) / 100,
-    contagionStrength: Number($('#contagion').value),
-    feeDeterrence: Number($('#deterrence').value),
-    feeFloor: Number($('#feeFloor').value) / 100,
-    feeCeiling: Number($('#feeCeiling').value) / 100,
-    feeSaturation: Number($('#saturation').value) / 100,
-    horizon: Number($('#horizon').value),
+    initialShock: Number($('#inputInitialShock').value) / 100,
+    contagionStrength: Number($('#inputContagion').value),
+    feeDeterrence: Number($('#inputDeterrence').value),
+    feeFloor: Number($('#inputFeeFloor').value) / 100,
+    feeCeiling: Number($('#inputFeeCeiling').value) / 100,
+    feeSaturation: Number($('#inputSaturation').value) / 100,
+    horizon: Number($('#inputHorizon').value),
   };
 }
 
 function syncControlLabels() {
-  $('#initialShockValue').textContent = `${$('#initialShock').value}%`;
-  $('#contagionValue').textContent = Number($('#contagion').value).toFixed(1);
-  $('#deterrenceValue').textContent = Number($('#deterrence').value).toFixed(1);
-  $('#feeFloorValue').textContent = `${$('#feeFloor').value}%`;
-  $('#feeCeilingValue').textContent = `${$('#feeCeiling').value}%`;
-  $('#saturationValue').textContent = `${$('#saturation').value}%`;
-  $('#horizonValue').textContent = `${$('#horizon').value} rounds`;
+  $('#valInitialShock').textContent = `${$('#inputInitialShock').value}%`;
+  $('#valContagion').textContent = Number($('#inputContagion').value).toFixed(1);
+  $('#valDeterrence').textContent = Number($('#inputDeterrence').value).toFixed(1);
+  $('#valFeeFloor').textContent = `${$('#inputFeeFloor').value}%`;
+  $('#valFeeCeiling').textContent = `${$('#inputFeeCeiling').value}%`;
+  $('#valSaturation').textContent = `${$('#inputSaturation').value}%`;
+  $('#valHorizon').textContent = `${$('#inputHorizon').value} rds`;
 }
 
-function classificationCopy(classification) {
-  if (classification === 'stable') return ['STABLE', 'Exit activity converges under these assumptions.'];
-  if (classification === 'cascade') return ['CASCADE', 'The model enters a self-reinforcing exit regime under these assumptions.'];
-  return ['BORDERLINE', 'The path stays unresolved within the selected horizon.'];
+function showToast(msg) {
+  const toast = $('#toastMessage');
+  if (!toast) return;
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2800);
 }
 
-function updateMetrics(result) {
-  const last = result.rounds.at(-1);
-  const [label, sub] = classificationCopy(result.classification);
-  $('#classification').textContent = label;
-  $('#classificationSub').textContent = sub;
-  $('#classificationCard').dataset.state = result.classification;
-  $('#classificationReason').textContent = result.classificationReason;
-
-  $('#metricPressure').textContent = formatPct(last.pressureAfter);
-  $('#metricFee').textContent = formatPct(last.feeAfter);
-  $('#metricRemaining').textContent = Math.round(last.participantsRemaining).toLocaleString();
-  $('#metricExited').textContent = formatPct(result.cumulativeExitedShare);
-  $('#metricBurn').textContent = formatPct(result.totalBurnShare, 2);
-  $('#metricRedistribution').textContent = formatPct(result.totalRedistributionShare, 2);
+function shareScenario() {
+  const params = new URLSearchParams({
+    shock: Math.round(state.config.initialShock * 100),
+    contagion: state.config.contagionStrength,
+    deterrence: state.config.feeDeterrence,
+    floor: Math.round(state.config.feeFloor * 100),
+    ceiling: Math.round(state.config.feeCeiling * 100),
+    saturation: Math.round(state.config.feeSaturation * 100),
+    horizon: state.config.horizon,
+  });
+  const url = `${window.location.origin}${window.location.pathname}?${params.toString()}#simulation`;
+  
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => {
+      showToast('Scenario link copied to clipboard!');
+    }).catch(() => {
+      window.history.replaceState(null, '', url);
+      showToast('Scenario URL updated in address bar');
+    });
+  } else {
+    window.history.replaceState(null, '', url);
+    showToast('Scenario URL updated in address bar');
+  }
 }
 
+// ==========================================================================
+// SIMULATION & METRICS RENDERING
+// ==========================================================================
+function updateClassificationBanner(result) {
+  const banner = $('#classificationBanner');
+  const verdictText = $('#verdictText');
+  const verdictSummary = $('#verdictSummary');
+  const verdictReason = $('#verdictReason');
+
+  const classification = result.classification;
+  banner.dataset.state = classification;
+
+  if (classification === 'stable') {
+    verdictText.textContent = 'STABLE';
+    verdictSummary.textContent = 'Under these assumptions, exit activity converges below the stability threshold.';
+  } else if (classification === 'cascade') {
+    verdictText.textContent = 'CASCADE';
+    verdictSummary.textContent = 'Under these assumptions, repeated exit activity compounds into a self-reinforcing run.';
+  } else {
+    verdictText.textContent = 'BORDERLINE';
+    verdictSummary.textContent = 'Under these assumptions, the exit trajectory remains unresolved within the horizon.';
+  }
+
+  verdictReason.textContent = result.classificationReason;
+}
+
+function updateRoundMetrics(roundData, result) {
+  $('#statPressure').textContent = formatPct(roundData.pressureAfter, 1);
+  $('#statFee').textContent = formatPct(roundData.feeAfter, 1);
+  $('#statRemaining').textContent = Math.round(roundData.participantsRemaining).toLocaleString();
+  $('#statCumulative').textContent = formatPct(roundData.cumulativeExitedShare, 1);
+  $('#statBurn').textContent = formatPct(result.totalBurnShare, 2);
+  $('#statRedistrib').textContent = formatPct(result.totalRedistributionShare, 2);
+
+  // Update mechanism flow summary cards
+  $('#cardShockVal').textContent = `${Math.round(state.config.initialShock * 100)}%`;
+  $('#cardPressureVal').textContent = formatNum(roundData.pressureAfter, 3);
+  $('#cardFeeVal').textContent = formatPct(roundData.feeAfter, 1);
+  $('#cardResponseVal').textContent = roundData.behavioralScore == null ? 'Exogenous' : formatNum(roundData.behavioralScore, 2);
+
+  // Update 3D sculpture node weights
+  if (state.sculpture) {
+    state.sculpture.updateState({
+      classification: result.classification,
+      activeRound: roundData.round,
+      exitRate: roundData.exitRate,
+      pressure: roundData.pressureAfter,
+      fee: roundData.feeAfter,
+      responseScore: roundData.behavioralScore,
+    });
+  }
+
+  // Highlight active table row
+  $$('#traceTableBody tr').forEach((tr, i) => {
+    if (i === roundData.round) {
+      tr.classList.add('active-row');
+    } else {
+      tr.classList.remove('active-row');
+    }
+  });
+}
+
+// ==========================================================================
+// TRAJECTORY CHART (SVG)
+// ==========================================================================
 function linePath(values, width, height, maxY = 1) {
   if (!values.length) return '';
-  const padX = 8;
+  const padX = 24;
+  const padY = 20;
   const usableW = width - padX * 2;
-  const usableH = height - 16;
+  const usableH = height - padY * 2;
   return values.map((v, i) => {
     const x = padX + (values.length === 1 ? 0 : (i / (values.length - 1)) * usableW);
-    const y = 8 + usableH - (Math.min(maxY, Math.max(0, v)) / maxY) * usableH;
+    const y = padY + usableH - (Math.min(maxY, Math.max(0, v)) / maxY) * usableH;
     return `${i === 0 ? 'M' : 'L'}${x.toFixed(2)} ${y.toFixed(2)}`;
   }).join(' ');
 }
 
 function drawTrajectory(result) {
   const svg = $('#trajectorySvg');
+  if (!svg) return;
   const box = svg.viewBox.baseVal;
-  const width = box.width || 900;
-  const height = box.height || 330;
+  const width = box.width || 860;
+  const height = box.height || 280;
+
   const exit = result.rounds.map((r) => r.exitRate);
   const fee = result.rounds.map((r) => r.feeAfter);
   const pressure = result.rounds.map((r) => r.pressureAfter);
-  const maxY = Math.max(0.15, ...exit, ...fee, ...pressure) * 1.12;
+  const maxY = Math.max(0.12, ...exit, ...fee, ...pressure) * 1.15;
 
   svg.innerHTML = '';
-  for (let i = 0; i <= 4; i += 1) {
-    const y = 10 + ((height - 28) * i / 4);
+
+  // Background Grid Lines
+  for (let i = 0; i <= 4; i++) {
+    const y = 20 + ((height - 40) * i / 4);
+    const val = (maxY * (4 - i) / 4);
+
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line.setAttribute('x1', '8'); line.setAttribute('x2', String(width - 8));
-    line.setAttribute('y1', String(y)); line.setAttribute('y2', String(y));
-    line.setAttribute('class', 'chart-grid');
+    line.setAttribute('x1', '24');
+    line.setAttribute('x2', String(width - 24));
+    line.setAttribute('y1', String(y));
+    line.setAttribute('y2', String(y));
+    line.setAttribute('class', 'chart-grid-line');
     svg.appendChild(line);
+
+    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    label.setAttribute('x', '28');
+    label.setAttribute('y', String(y - 4));
+    label.setAttribute('class', 'chart-axis-text');
+    label.textContent = `${(val * 100).toFixed(0)}%`;
+    svg.appendChild(label);
   }
 
+  // Draw Series Paths
   const series = [
-    ['exit-line', exit],
-    ['fee-line', fee],
-    ['pressure-line', pressure],
+    { id: 'exit', class: 'chart-line-exit', values: exit },
+    { id: 'fee', class: 'chart-line-fee', values: fee },
+    { id: 'pressure', class: 'chart-line-pressure', values: pressure },
   ];
-  for (const [klass, values] of series) {
-    const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    p.setAttribute('d', linePath(values, width, height, maxY));
-    p.setAttribute('class', `chart-path ${klass}`);
-    svg.appendChild(p);
-  }
 
-  $('#chartScale').textContent = `0 → ${(maxY * 100).toFixed(0)}%`;
+  series.forEach((s) => {
+    if (state.visibleSeries[s.id]) {
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', linePath(s.values, width, height, maxY));
+      path.setAttribute('class', s.class);
+      svg.appendChild(path);
+    }
+  });
+
+  // Draw Active Round Cursor Line
+  const padX = 24;
+  const usableW = width - padX * 2;
+  const activeX = padX + (state.activeRoundIndex / (result.rounds.length - 1)) * usableW;
+
+  const cursorLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  cursorLine.setAttribute('x1', String(activeX));
+  cursorLine.setAttribute('x2', String(activeX));
+  cursorLine.setAttribute('y1', '16');
+  cursorLine.setAttribute('y2', String(height - 16));
+  cursorLine.setAttribute('stroke', state.theme === 'dark' ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.3)');
+  cursorLine.setAttribute('stroke-width', '1.5');
+  cursorLine.setAttribute('stroke-dasharray', '3 3');
+  svg.appendChild(cursorLine);
 }
 
-function updateTrace(result) {
-  const tbody = $('#traceBody');
-  tbody.innerHTML = result.rounds.map((r) => `
-    <tr>
+// ==========================================================================
+// ROUND-BY-ROUND TRACE TABLE
+// ==========================================================================
+function updateTraceTable(result) {
+  const tbody = $('#traceTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = result.rounds.map((r, idx) => `
+    <tr data-round="${idx}">
       <td>${r.round + 1}</td>
       <td>${formatPct(r.exitRate, 2)}</td>
       <td>${formatPct(r.pressureAfter, 2)}</td>
       <td>${formatPct(r.feeAfter, 2)}</td>
       <td>${Math.round(r.participantsRemaining).toLocaleString()}</td>
+      <td>${formatPct(r.burnShare, 3)}</td>
+      <td>${formatPct(r.redistributionShare, 3)}</td>
       <td>${r.behavioralScore == null ? 'shock' : formatNum(r.behavioralScore, 3)}</td>
-    </tr>`).join('');
+    </tr>
+  `).join('');
+
+  $$('#traceTableBody tr').forEach((tr) => {
+    tr.addEventListener('click', () => {
+      const rIdx = Number(tr.dataset.round);
+      setScrubberRound(rIdx);
+    });
+  });
 }
 
-function drawMechanismTrace(result) {
-  const r = result.rounds[Math.min(1, result.rounds.length - 1)];
-  $('#traceExit').textContent = formatPct(r.exitRate, 1);
-  $('#tracePressure').textContent = formatPct(r.pressureAfter, 1);
-  $('#traceFee').textContent = formatPct(r.feeAfter, 1);
-  $('#traceResponse').textContent = r.behavioralScore == null ? 'exogenous' : formatNum(r.behavioralScore, 2);
+// ==========================================================================
+// SCRUBBER & PLAYBACK
+// ==========================================================================
+function setScrubberRound(idx) {
+  if (!state.result) return;
+  const maxIdx = state.result.rounds.length - 1;
+  state.activeRoundIndex = Math.max(0, Math.min(maxIdx, idx));
+
+  $('#roundScrubber').value = state.activeRoundIndex + 1;
+  $('#scrubberLabel').textContent = `Round: ${state.activeRoundIndex + 1}/${state.result.rounds.length}`;
+
+  const currentRound = state.result.rounds[state.activeRoundIndex];
+  updateRoundMetrics(currentRound, state.result);
+  drawTrajectory(state.result);
 }
 
+function togglePlay() {
+  if (state.isPlaying) {
+    pauseSimulation();
+  } else {
+    playSimulation();
+  }
+}
+
+function playSimulation() {
+  state.isPlaying = true;
+  $('#playIcon').style.display = 'none';
+  $('#pauseIcon').style.display = 'block';
+
+  if (state.activeRoundIndex >= (state.result?.rounds.length || 1) - 1) {
+    setScrubberRound(0);
+  }
+
+  state.playTimer = setInterval(() => {
+    if (!state.result) return;
+    if (state.activeRoundIndex < state.result.rounds.length - 1) {
+      setScrubberRound(state.activeRoundIndex + 1);
+    } else {
+      pauseSimulation();
+    }
+  }, 320);
+}
+
+function pauseSimulation() {
+  state.isPlaying = false;
+  clearInterval(state.playTimer);
+  $('#playIcon').style.display = 'block';
+  $('#pauseIcon').style.display = 'none';
+}
+
+// ==========================================================================
+// STABILITY MAP (651 Full Simulations)
+// ==========================================================================
 function heatColor(classification) {
-  const style = getComputedStyle(document.documentElement);
-  if (classification === 'stable') return style.getPropertyValue('--stable').trim() || '#4ade80';
-  if (classification === 'cascade') return style.getPropertyValue('--cascade').trim() || '#f87171';
-  return style.getPropertyValue('--borderline').trim() || '#fbbf24';
+  const isDark = state.theme === 'dark';
+  if (classification === 'stable') return isDark ? '#4ADE80' : '#1F7A42';
+  if (classification === 'cascade') return isDark ? '#F87171' : '#B82E2B';
+  return isDark ? '#FBBF24' : '#A36B15';
 }
 
 function drawHeatmap() {
-  const canvas = $('#heatmap');
+  const canvas = $('#stabilityHeatmapCanvas');
+  if (!canvas || !state.sweep) return;
+
   const rect = canvas.getBoundingClientRect();
-  const dpr = window.devicePixelRatio || 1;
-  canvas.width = Math.max(1, Math.floor(rect.width * dpr));
-  canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.floor(rect.width * dpr);
+  canvas.height = Math.floor(rect.height * dpr);
+
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const W = rect.width, H = rect.height;
+  const W = rect.width;
+  const H = rect.height;
 
   const sweep = state.sweep;
   const cols = sweep.xValues.length;
   const rows = sweep.yValues.length;
-  const cw = W / cols, ch = H / rows;
+  const cw = W / cols;
+  const ch = H / rows;
   ctx.clearRect(0, 0, W, H);
 
   for (const cell of sweep.cells) {
     ctx.fillStyle = heatColor(cell.classification);
-    ctx.globalAlpha = 0.82;
+    ctx.globalAlpha = 0.88;
     const x = cell.xi * cw;
     const y = H - (cell.yi + 1) * ch;
-    ctx.fillRect(x, y, Math.ceil(cw + 0.2), Math.ceil(ch + 0.2));
+    ctx.fillRect(x, y, Math.ceil(cw + 0.3), Math.ceil(ch + 0.3));
   }
   ctx.globalAlpha = 1;
 }
@@ -171,78 +419,206 @@ function buildSweep() {
 
 function heatmapHover(event) {
   if (!state.sweep) return;
-  const canvas = $('#heatmap');
+  const canvas = $('#stabilityHeatmapCanvas');
   const rect = canvas.getBoundingClientRect();
   const xNorm = (event.clientX - rect.left) / rect.width;
   const yNorm = 1 - (event.clientY - rect.top) / rect.height;
+
   const xi = Math.max(0, Math.min(state.sweep.xValues.length - 1, Math.floor(xNorm * state.sweep.xValues.length)));
   const yi = Math.max(0, Math.min(state.sweep.yValues.length - 1, Math.floor(yNorm * state.sweep.yValues.length)));
   const cell = state.sweep.cells.find((c) => c.xi === xi && c.yi === yi);
   if (!cell) return;
-  const tip = $('#heatTip');
-  tip.innerHTML = `<strong>${cell.classification.toUpperCase()}</strong><span>Contagion ${cell.contagionStrength.toFixed(1)} · Fee deterrence ${cell.feeDeterrence.toFixed(1)} · ${(cell.cumulativeExitedShare * 100).toFixed(1)}% cumulative exits</span>`;
+
+  const tip = $('#heatmapTooltip');
+  tip.innerHTML = `
+    <div class="heatmap-tooltip-title" style="color:${heatColor(cell.classification)}">
+      ${cell.classification.toUpperCase()}
+    </div>
+    <div>Contagion: <b>${cell.contagionStrength.toFixed(1)}</b> · Deterrence: <b>${cell.feeDeterrence.toFixed(1)}</b></div>
+    <div style="font-size:10px; color:var(--ink-muted); margin-top:2px;">
+      Cumulative Exits: ${(cell.cumulativeExitedShare * 100).toFixed(1)}% · Click to load
+    </div>
+  `;
   tip.style.opacity = '1';
 }
 
-function renderSources() {
-  const list = $('#sourceList');
-  list.innerHTML = Object.values(sourceRegistry).map((item) => `
-    <article class="source-row">
-      <div><span class="status-badge ${item.status}">${item.status.replaceAll('-', ' ')}</span></div>
-      <div>
-        <h4>${item.label}</h4>
-        <p>${item.note}</p>
-        ${item.source ? `<a href="${item.source}" target="_blank" rel="noreferrer">Open source ↗</a>` : ''}
-      </div>
-    </article>`).join('');
+function heatmapClick(event) {
+  if (!state.sweep) return;
+  const canvas = $('#stabilityHeatmapCanvas');
+  const rect = canvas.getBoundingClientRect();
+  const xNorm = (event.clientX - rect.left) / rect.width;
+  const yNorm = 1 - (event.clientY - rect.top) / rect.height;
+
+  const xi = Math.max(0, Math.min(state.sweep.xValues.length - 1, Math.floor(xNorm * state.sweep.xValues.length)));
+  const yi = Math.max(0, Math.min(state.sweep.yValues.length - 1, Math.floor(yNorm * state.sweep.yValues.length)));
+  const cell = state.sweep.cells.find((c) => c.xi === xi && c.yi === yi);
+  if (!cell) return;
+
+  // Load selected parameters directly into the simulator
+  $('#inputContagion').value = cell.contagionStrength;
+  $('#inputDeterrence').value = cell.feeDeterrence;
+  syncConfigFromInputs();
+  syncControlLabels();
+  runSimulation();
+  showToast(`Loaded scenario: Contagion ${cell.contagionStrength.toFixed(1)}, Deterrence ${cell.feeDeterrence.toFixed(1)}`);
 }
 
-function run() {
-  readControls();
+// ==========================================================================
+// PRESETS
+// ==========================================================================
+function setPreset(name) {
+  const presets = {
+    baseline: { shock: 10, contagion: 18, deterrence: 8, floor: 2, ceiling: 40, saturation: 50 },
+    contagion: { shock: 14, contagion: 26, deterrence: 4, floor: 2, ceiling: 40, saturation: 50 },
+    deterrence: { shock: 14, contagion: 14, deterrence: 15, floor: 2, ceiling: 40, saturation: 50 },
+  };
+  const p = presets[name];
+  if (!p) return;
+
+  $('#inputInitialShock').value = p.shock;
+  $('#inputContagion').value = p.contagion;
+  $('#inputDeterrence').value = p.deterrence;
+  $('#inputFeeFloor').value = p.floor;
+  $('#inputFeeCeiling').value = p.ceiling;
+  $('#inputSaturation').value = p.saturation;
+
+  $$('.preset-btn').forEach((b) => {
+    b.classList.toggle('active', b.dataset.preset === name);
+  });
+
+  syncConfigFromInputs();
+  syncControlLabels();
+  runSimulation();
+}
+
+// ==========================================================================
+// MAIN RUN SIMULATION
+// ==========================================================================
+function runSimulation() {
+  pauseSimulation();
+  syncConfigFromInputs();
+
   state.result = simulate(state.config);
-  updateMetrics(state.result);
+  state.activeRoundIndex = state.result.rounds.length - 1;
+
+  // Update scrubber bounds
+  const scrubber = $('#roundScrubber');
+  scrubber.max = state.result.rounds.length;
+  scrubber.value = state.result.rounds.length;
+  $('#scrubberLabel').textContent = `Round: ${state.result.rounds.length}/${state.result.rounds.length}`;
+
+  // Update DOM components
+  updateClassificationBanner(state.result);
+  updateTraceTable(state.result);
   drawTrajectory(state.result);
-  updateTrace(state.result);
-  drawMechanismTrace(state.result);
+  updateRoundMetrics(state.result.rounds.at(-1), state.result);
   buildSweep();
 }
 
-function preset(name) {
-  const presets = {
-    baseline: { initialShock: 10, contagion: 18, deterrence: 8, feeFloor: 2, feeCeiling: 40, saturation: 50 },
-    contagion: { initialShock: 12, contagion: 24, deterrence: 4, feeFloor: 2, feeCeiling: 40, saturation: 50 },
-    deterrence: { initialShock: 12, contagion: 16, deterrence: 14, feeFloor: 2, feeCeiling: 40, saturation: 50 },
-  };
-  const p = presets[name];
-  $('#initialShock').value = p.initialShock;
-  $('#contagion').value = p.contagion;
-  $('#deterrence').value = p.deterrence;
-  $('#feeFloor').value = p.feeFloor;
-  $('#feeCeiling').value = p.feeCeiling;
-  $('#saturation').value = p.saturation;
-  syncControlLabels();
-  run();
+// ==========================================================================
+// INITIALIZATION
+// ==========================================================================
+function init() {
+  // 1. Theme
+  initTheme();
+
+  // 2. 3D Sculpture
+  const sculptureContainer = $('#sculptureCanvasContainer');
+  if (sculptureContainer) {
+    state.sculpture = new ReflexSculpture(sculptureContainer, { theme: state.theme });
+  }
+
+  // 3. URL Params & Initial Config
+  readUrlParams();
+  syncInputsFromConfig();
+
+  // 4. Sliders Event Listeners
+  $$('.range-slider').forEach((el) => {
+    if (el.id === 'roundScrubber') return;
+    el.addEventListener('input', () => {
+      syncConfigFromInputs();
+      syncControlLabels();
+      runSimulation();
+    });
+  });
+
+  // 5. Scrubber Input Event
+  $('#roundScrubber')?.addEventListener('input', (e) => {
+    pauseSimulation();
+    setScrubberRound(Number(e.target.value) - 1);
+  });
+
+  // 6. Play / Pause Button
+  $('#btnPlayPause')?.addEventListener('click', togglePlay);
+
+  // 7. Preset Buttons
+  $$('.preset-btn').forEach((btn) => {
+    btn.addEventListener('click', () => setPreset(btn.dataset.preset));
+  });
+
+  // 8. Reset & Run Buttons
+  $('#btnResetControls')?.addEventListener('click', () => {
+    state.config = { ...MODEL_DEFAULTS };
+    syncInputsFromConfig();
+    runSimulation();
+    showToast('Reset parameters to baseline');
+  });
+
+  $('#btnRunModel')?.addEventListener('click', () => {
+    runSimulation();
+    showToast('Simulated scenario successfully');
+  });
+
+  // 9. Series Toggle Chips
+  $$('.toggle-chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      const s = chip.dataset.series;
+      state.visibleSeries[s] = !state.visibleSeries[s];
+      chip.classList.toggle('active', state.visibleSeries[s]);
+      if (state.result) drawTrajectory(state.result);
+    });
+  });
+
+  // 10. Export CSV & JSON
+  $('#btnExportCsv')?.addEventListener('click', () => {
+    if (!state.result) return;
+    downloadText('reflex-simulation.csv', resultToCsv(state.result), 'text/csv');
+    showToast('Downloaded simulation CSV');
+  });
+
+  $('#btnExportJson')?.addEventListener('click', () => {
+    if (!state.result) return;
+    downloadText('reflex-simulation.json', JSON.stringify(state.result, null, 2), 'application/json');
+    showToast('Downloaded simulation JSON');
+  });
+
+  // 11. Share Scenario
+  $('#btnShareScenarioTop')?.addEventListener('click', shareScenario);
+
+  // 12. Heatmap Interactivity
+  const heatmapEl = $('#stabilityHeatmapCanvas');
+  if (heatmapEl) {
+    heatmapEl.addEventListener('mousemove', heatmapHover);
+    heatmapEl.addEventListener('mouseleave', () => {
+      const tip = $('#heatmapTooltip');
+      if (tip) tip.style.opacity = '0';
+    });
+    heatmapEl.addEventListener('click', heatmapClick);
+  }
+
+  // 13. Window Resize
+  window.addEventListener('resize', () => {
+    if (state.sweep) drawHeatmap();
+    if (state.result) drawTrajectory(state.result);
+  }, { passive: true });
+
+  // 14. Initial Run
+  runSimulation();
 }
 
-$$('input[type="range"]').forEach((el) => el.addEventListener('input', () => {
-  syncControlLabels();
-  run();
-}));
-
-$$('[data-preset]').forEach((btn) => btn.addEventListener('click', () => preset(btn.dataset.preset)));
-
-$('#downloadCsv').addEventListener('click', () => {
-  downloadText('reflex-simulation.csv', resultToCsv(state.result), 'text/csv');
-});
-
-$('#downloadJson').addEventListener('click', () => {
-  downloadText('reflex-simulation.json', JSON.stringify(state.result, null, 2), 'application/json');
-});
-
-$('#heatmap').addEventListener('mousemove', heatmapHover);
-$('#heatmap').addEventListener('mouseleave', () => { $('#heatTip').style.opacity = '0'; });
-window.addEventListener('resize', () => { if (state.sweep) drawHeatmap(); });
-
-renderSources();
-syncControlLabels();
-run();
+// Start application
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
