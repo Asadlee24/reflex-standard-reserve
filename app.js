@@ -129,9 +129,10 @@ function drawMechanismTrace(result) {
 }
 
 function heatColor(classification) {
-  if (classification === 'stable') return getComputedStyle(document.documentElement).getPropertyValue('--stable').trim();
-  if (classification === 'cascade') return getComputedStyle(document.documentElement).getPropertyValue('--cascade').trim();
-  return getComputedStyle(document.documentElement).getPropertyValue('--borderline').trim();
+  const style = getComputedStyle(document.documentElement);
+  if (classification === 'stable') return style.getPropertyValue('--stable').trim() || '#4ade80';
+  if (classification === 'cascade') return style.getPropertyValue('--cascade').trim() || '#f87171';
+  return style.getPropertyValue('--borderline').trim() || '#fbbf24';
 }
 
 function drawHeatmap() {
