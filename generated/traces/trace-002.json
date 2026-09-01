@@ -1,0 +1,90 @@
+{
+  "traceId": "TRACE-002",
+  "name": "Multi-Branch Capacity Exhaustion & Fuzz Interleaving",
+  "timestamp": "2026-09-01T14:35:00Z",
+  "seed": "0x5354414e444152445f3032",
+  "verdict": "PASS",
+  "failureClassification": null,
+  "stepsCount": 5,
+  "steps": [
+    {
+      "stepIndex": 0,
+      "action": "createCharter(owner: 0xBob, maxBranches: 2)",
+      "caller": "0xDeployer",
+      "preState": {
+        "activeBranches": 0
+      },
+      "postState": {
+        "maxCapacity": 2,
+        "activeBranches": 0
+      },
+      "invariantsChecked": [
+        "INV-CHARTER-001"
+      ],
+      "status": "PASS"
+    },
+    {
+      "stepIndex": 1,
+      "action": "openBranch(charter: 2) -> branchId: 2",
+      "caller": "0xBob",
+      "preState": {
+        "activeBranches": 0
+      },
+      "postState": {
+        "activeBranches": 1
+      },
+      "invariantsChecked": [
+        "INV-BRANCH-001"
+      ],
+      "status": "PASS"
+    },
+    {
+      "stepIndex": 2,
+      "action": "openBranch(charter: 2) -> branchId: 3",
+      "caller": "0xBob",
+      "preState": {
+        "activeBranches": 1
+      },
+      "postState": {
+        "activeBranches": 2
+      },
+      "invariantsChecked": [
+        "INV-BRANCH-001"
+      ],
+      "status": "PASS"
+    },
+    {
+      "stepIndex": 3,
+      "action": "openBranch(charter: 2) [REVERT EXPECTED]",
+      "caller": "0xBob",
+      "preState": {
+        "activeBranches": 2,
+        "maxCapacity": 2
+      },
+      "postState": {
+        "activeBranches": 2,
+        "reverted": true,
+        "reason": "Branch capacity exceeded"
+      },
+      "invariantsChecked": [
+        "INV-BRANCH-001"
+      ],
+      "status": "PASS"
+    },
+    {
+      "stepIndex": 4,
+      "action": "expandCapacity(charter: 2, +2 via Licence)",
+      "caller": "0xAuctionEngine",
+      "preState": {
+        "maxCapacity": 2
+      },
+      "postState": {
+        "maxCapacity": 4
+      },
+      "invariantsChecked": [
+        "INV-BRANCH-001"
+      ],
+      "status": "PASS"
+    }
+  ]
+}

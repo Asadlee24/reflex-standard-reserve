@@ -1,0 +1,14 @@
+{
+  "timestamp": "2026-09-01T11:52:25.775Z",
+  "commitSha": "f4264256",
+  "solidityVersion": "0.8.24",
+  "nodeVersion": "v24.18.0",
+  "totalInvariants": 16,
+  "passingInvariants": 16,
+  "candidateInvariants": 0,
+  "blockedInvariants": 0,
+  "fuzzRuns": 256,
+  "maxSequenceDepth": 32,
+  "suiteDurationMs": 296,
+  "status": "ALL_PASSING"
+}

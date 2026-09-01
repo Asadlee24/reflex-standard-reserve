@@ -3,15 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="REFLEX — Independent, reproducible exit-dynamics research model for The Standard Reserve." />
-  <title>REFLEX — Does one exit cause the next?</title>
+  <meta name="description" content="REFLEX — Standard Reserve Research Laboratory. Exit-feedback dynamics, executable specification, formal state machine, and Foundry invariant tests." />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="REFLEX — Standard Reserve Research Laboratory" />
+  <meta property="og:description" content="Research the mechanism. Test the specification. Independent research by Asad Lee." />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="REFLEX — Standard Reserve Research Laboratory" />
+  <meta name="twitter:description" content="Exit-feedback dynamics, executable specification, formal state machine, and Foundry invariant tests." />
+  <title>REFLEX — Standard Reserve Research Laboratory</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
 
-  <!-- Paper grain overlay -->
+  <!-- Background grain -->
   <div class="paper-texture" aria-hidden="true"></div>
 
   <!-- Navigation Bar -->
@@ -19,33 +26,36 @@
     <div class="container nav-inner">
       <a class="nav-brand" href="#top">
         <span class="nav-wordmark">REFLEX</span>
-        <span class="nav-tag">/ Research Model</span>
+        <span class="nav-tag">/ Standard Reserve Lab</span>
       </a>
 
-      <nav aria-label="Primary navigation">
+      <nav aria-label="Primary navigation" class="nav-primary">
         <ul class="nav-links">
-          <li><a href="#simulation">Model</a></li>
-          <li><a href="#stability">Stability Map</a></li>
-          <li><a href="#methodology">Methodology</a></li>
-          <li><a href="#sources">Sources</a></li>
+          <li><a href="#overview" class="nav-link active">Overview</a></li>
+          <li><a href="#dynamics" class="nav-link">Dynamics</a></li>
+          <li><a href="#speclab" class="nav-link">SpecLab</a></li>
+          <li><a href="#invariants" class="nav-link">Invariants</a></li>
+          <li><a href="#tracelab" class="nav-link">Trace Lab</a></li>
+          <li><a href="#provenance" class="nav-link">Provenance</a></li>
+          <li><a href="#assumptions" class="nav-link">Assumptions</a></li>
+          <li><a href="#differential" class="nav-link">Differential</a></li>
+          <li><a href="#about" class="nav-link">About</a></li>
         </ul>
       </nav>
 
       <div class="nav-actions">
-        <button id="themeToggleBtn" class="theme-toggle-btn" aria-label="Toggle light or dark theme" title="Toggle theme">
-          <!-- Sun Icon (shown in dark mode to switch to light) -->
-          <svg class="theme-icon sun" viewBox="0 0 24 24">
-            <path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96c.39-.39.39-1.03 0-1.41s-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36c.39-.39.39-1.03 0-1.41s-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z"/>
-          </svg>
-          <!-- Moon Icon (shown in light mode to switch to dark) -->
-          <svg class="theme-icon moon" viewBox="0 0 24 24">
-            <path d="M12.3 2a10 10 0 0 0-1.9 20 10 10 0 0 0 9.8-7.7 1 1 0 0 0-1.2-1.2 8 8 0 0 1-9.4-9.4c0-.5-.4-1-.9-1.1-.1 0-.3-.1-.4-.1z"/>
-          </svg>
+        <button id="btnCmdPalette" class="cmd-palette-btn" aria-label="Open Command Palette" title="Command Palette (Ctrl+K)">
+          <span class="cmd-key-hint">⌘K</span>
         </button>
 
-        <button id="btnShareScenarioTop" class="btn-secondary" style="font-size: 11px; padding: 7px 13px;">
-          Share Scenario
+        <button id="themeToggleBtn" class="theme-toggle-btn" aria-label="Toggle light or dark theme" title="Toggle theme">
+          <svg class="theme-icon sun" viewBox="0 0 24 24"><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96c.39-.39.39-1.03 0-1.41s-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36c.39-.39.39-1.03 0-1.41s-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z"/></svg>
+          <svg class="theme-icon moon" viewBox="0 0 24 24"><path d="M12.3 2a10 10 0 0 0-1.9 20 10 10 0 0 0 9.8-7.7 1 1 0 0 0-1.2-1.2 8 8 0 0 1-9.4-9.4c0-.5-.4-1-.9-1.1-.1 0-.3-.1-.4-.1z"/></svg>
         </button>
+
+        <a href="https://github.com/Asadlee24/reflex-standard-reserve" target="_blank" rel="noopener noreferrer" class="btn-secondary nav-gh-btn">
+          GitHub ↗
+        </a>
       </div>
     </div>
   </header>
@@ -53,433 +63,453 @@
   <main id="top">
 
     <!-- HERO SECTION -->
-    <section class="hero-section">
+    <section id="overview" class="hero-section">
       <div class="container hero-grid">
         <div class="hero-left">
-          <div class="hero-eyebrow">Independent Mechanism Research</div>
-          <h1 class="hero-title">Does one exit<br><em>cause the next?</em></h1>
+          <div class="hero-eyebrow">Standard Reserve Research Laboratory</div>
+          <h1 class="hero-title">Research the mechanism.<br><em>Test the specification.</em></h1>
           <p class="hero-lead">
-            REFLEX explores how trailing exit pressure, resolution-fee deterrence, and repeated participant sensitivity interact over multiple rounds. An independent, reproducible sensitivity model.
+            REFLEX brings two complementary research instruments into one laboratory: <strong>Dynamics</strong> explores exit-contagion feedback loops under behavioral assumptions, while <strong>SpecLab</strong> formalizes published rules into executable state transitions and Foundry invariant tests.
           </p>
 
           <div class="hero-cta-group">
-            <a href="#simulation" class="btn-primary">Run the model ↘</a>
-            <a href="#methodology" class="btn-secondary">Read methodology</a>
+            <a href="#dynamics" class="btn-primary">Explore Dynamics ↘</a>
+            <a href="#speclab" class="btn-secondary">Open SpecLab ↘</a>
           </div>
 
           <div class="hero-meta">
-            <span>● Reproducible</span>
-            <span>● Assumption-transparent</span>
-            <span>● No live protocol data</span>
-            <span>Built by <a href="https://asad-lee-portfolio.vercel.app" target="_blank" rel="noopener noreferrer">Asad Lee ↗</a></span>
+            <span>● 2 Research Instruments</span>
+            <span>● 16 Invariants Verified</span>
+            <span>● 0 Fake Live Data</span>
+            <span>Built by <a href="https://github.com/Asadlee24" target="_blank" rel="noopener noreferrer">Asad Lee ↗</a></span>
           </div>
         </div>
 
         <!-- 3D Mechanism Sculpture Container -->
         <div class="hero-sculpture-wrap">
-          <div class="sculpture-badge-overlay">3D Mechanism Loop</div>
-          <div id="sculptureCanvasContainer" aria-label="3D visualization of the feedback loop"></div>
-          <div class="sculpture-controls-hint">drag to rotate · hover nodes</div>
+          <div class="sculpture-badge-overlay">
+            <span class="pulse-dot"></span>
+            REFLEX CORE · Dual-Layer Model
+          </div>
+          <div id="sculptureCanvasContainer" aria-label="3D visualization of REFLEX Core and SpecLab state nodes"></div>
+          <div class="sculpture-controls-hint">Inner: 8 SpecLab Domains · Outer: Dynamics Feedback Field</div>
         </div>
       </div>
     </section>
 
-    <!-- MECHANISM FLOW SUMMARY STRIP -->
-    <section class="mechanism-strip">
+    <!-- RESEARCH MODULES STRIP -->
+    <section class="research-instruments-strip">
       <div class="container">
-        <div class="flow-card-grid">
-          <div class="flow-card">
-            <span class="flow-card-num">STAGE 01</span>
-            <div class="flow-card-title">Initial Shock</div>
-            <div class="flow-card-value" id="cardShockVal">10.0%</div>
-            <div class="flow-card-desc">Exogenous initial exit volume triggers trailing pressure window.</div>
-          </div>
-          <div class="flow-card">
-            <span class="flow-card-num">STAGE 02</span>
-            <div class="flow-card-title">Exit Pressure</div>
-            <div class="flow-card-value" id="cardPressureVal">0.100</div>
-            <div class="flow-card-desc">Trailing withdrawals relative to remaining held value.</div>
-          </div>
-          <div class="flow-card">
-            <span class="flow-card-num">STAGE 03</span>
-            <div class="flow-card-title">Resolution Fee</div>
-            <div class="flow-card-value" id="cardFeeVal">3.5%</div>
-            <div class="flow-card-desc">Quadratic shape between floor and ceiling bounds.</div>
-          </div>
-          <div class="flow-card">
-            <span class="flow-card-num">STAGE 04</span>
-            <div class="flow-card-title">Next Response</div>
-            <div class="flow-card-value" id="cardResponseVal">-1.24</div>
-            <div class="flow-card-desc">Contagion pulls exits up; fee deterrence pulls them down.</div>
-          </div>
+        <div class="instruments-grid">
+          <a href="#dynamics" class="instrument-card">
+            <span class="inst-num">01 / INSTRUMENT</span>
+            <h3 class="inst-title">REFLEX Dynamics</h3>
+            <p class="inst-desc">Behavioral & economic exit-feedback simulation under configurable participant sensitivity assumptions.</p>
+            <div class="inst-link">Launch Dynamics →</div>
+          </a>
+
+          <a href="#speclab" class="instrument-card highlight">
+            <span class="inst-num">02 / INSTRUMENT</span>
+            <h3 class="inst-title">SPEC LAB</h3>
+            <p class="inst-desc">Executable reference specification, formal state machine, and Foundry property/invariant test harness.</p>
+            <div class="inst-link">Open Specification →</div>
+          </a>
+
+          <a href="#tracelab" class="instrument-card">
+            <span class="inst-num">03 / FORENSICS</span>
+            <h3 class="inst-title">Trace Lab</h3>
+            <p class="inst-desc">Randomized state-transition sequence replay with pre/post state diffs and invariant evaluations.</p>
+            <div class="inst-link">Scrub Traces →</div>
+          </a>
         </div>
       </div>
     </section>
 
-    <!-- SIMULATION WORKSPACE -->
-    <section id="simulation" class="sim-section">
+    <!-- MODULE 01: DYNAMICS (EXIT FEEDBACK SIMULATION) -->
+    <section id="dynamics" class="research-section">
       <div class="container">
         <div class="section-head">
           <div>
-            <div class="section-eyebrow">01 / Simulation Workspace</div>
-            <h2 class="section-heading">Model exit dynamics.</h2>
+            <div class="section-eyebrow">01 / Behavioral Layer</div>
+            <h2 class="section-heading">REFLEX Dynamics — Exit Feedback Lab</h2>
           </div>
           <p class="section-subtext">
-            Adjust behavioral assumptions and protocol parameters to see whether deterrence catches up with contagion or precipitates a cascade.
+            Does one exit cause the next? Explore how trailing exit pressure, quadratic resolution fees, and participant sensitivity interact over multiple rounds.
           </p>
         </div>
 
         <div class="sim-workspace-layout">
-
-          <!-- Left Sidebar Controls -->
-          <aside class="controls-card" aria-label="Model parameter controls">
+          <!-- Parameter Controls -->
+          <aside class="controls-card" aria-label="Dynamics parameter controls">
             <div class="controls-header">
-              <h3>Assumptions</h3>
+              <h3>Simulation Controls</h3>
               <button id="btnResetControls" class="btn-reset-sim" title="Reset all sliders to baseline">Reset</button>
             </div>
 
-            <!-- Presets -->
-            <div class="preset-selector">
-              <button class="preset-btn active" data-preset="baseline">Baseline</button>
-              <button class="preset-btn" data-preset="contagion">Contagion-Heavy</button>
-              <button class="preset-btn" data-preset="deterrence">Deterrence-Heavy</button>
-            </div>
-
-            <!-- Behavioral Parameters -->
-            <div class="control-group-title">
-              <span>Behavioral Layer</span>
-              <span class="status-badge badge-model">Model</span>
-            </div>
-
-            <div class="control-row">
-              <div class="control-label-row">
-                <span>Initial Exit Shock</span>
-                <span class="control-val" id="valInitialShock">10%</span>
+            <div id="modelControls">
+              <!-- Presets -->
+              <div class="preset-selector">
+                <button class="preset-btn active" data-preset="baseline">Baseline</button>
+                <button class="preset-btn" data-preset="contagion">Contagion-Heavy</button>
+                <button class="preset-btn" data-preset="deterrence">Deterrence-Heavy</button>
               </div>
-              <p class="control-desc">Exogenous volume exiting in round 0.</p>
-              <input type="range" id="inputInitialShock" class="range-slider" min="0" max="50" step="1" value="10" />
-            </div>
 
-            <div class="control-row">
-              <div class="control-label-row">
-                <span>Contagion Strength</span>
-                <span class="control-val" id="valContagion">18.0</span>
+              <!-- Behavioral Layer -->
+              <div class="control-group-title">
+                <span>Behavioral Assumptions</span>
+                <span class="status-badge badge-model">REFLEX Model</span>
               </div>
-              <p class="control-desc">How strongly recent exit velocity triggers next-round exits.</p>
-              <input type="range" id="inputContagion" class="range-slider" min="0" max="30" step="0.5" value="18" />
-            </div>
 
-            <div class="control-row">
-              <div class="control-label-row">
-                <span>Fee Deterrence</span>
-                <span class="control-val" id="valDeterrence">8.0</span>
+              <div class="control-row">
+                <div class="control-label-row">
+                  <span>Initial Exit Shock</span>
+                  <span class="control-val" id="valInitialShock">10%</span>
+                </div>
+                <p class="control-desc">Exogenous volume exiting in round 0.</p>
+                <input type="range" id="inputInitialShock" class="range-slider" min="0" max="50" step="1" value="10" />
               </div>
-              <p class="control-desc">How effectively elevated exit fee discourages withdrawal.</p>
-              <input type="range" id="inputDeterrence" class="range-slider" min="0" max="20" step="0.5" value="8" />
-            </div>
 
-            <!-- Protocol Parameters (Redacted Launch Bounds) -->
-            <div class="control-group-title">
-              <span>Protocol Parameters</span>
-              <span class="status-badge badge-model">Redacted</span>
-            </div>
-
-            <div class="control-row">
-              <div class="control-label-row">
-                <span>Fee Floor</span>
-                <span class="control-val" id="valFeeFloor">2%</span>
+              <div class="control-row">
+                <div class="control-label-row">
+                  <span>Contagion Sensitivity (γ)</span>
+                  <span class="control-val" id="valContagion">18.0</span>
+                </div>
+                <p class="control-desc">How strongly prior round exits trigger subsequent exits.</p>
+                <input type="range" id="inputContagion" class="range-slider" min="0" max="30" step="0.5" value="18" />
               </div>
-              <p class="control-desc">Minimum baseline resolution fee.</p>
-              <input type="range" id="inputFeeFloor" class="range-slider" min="0" max="20" step="1" value="2" />
-            </div>
 
-            <div class="control-row">
-              <div class="control-label-row">
-                <span>Fee Ceiling</span>
-                <span class="control-val" id="valFeeCeiling">40%</span>
+              <div class="control-row">
+                <div class="control-label-row">
+                  <span>Fee Deterrence (δ)</span>
+                  <span class="control-val" id="valDeterrence">8.0</span>
+                </div>
+                <p class="control-desc">How effectively elevated fees suppress withdrawal.</p>
+                <input type="range" id="inputDeterrence" class="range-slider" min="0" max="20" step="0.5" value="8" />
               </div>
-              <p class="control-desc">Maximum resolution fee cap under high pressure.</p>
-              <input type="range" id="inputFeeCeiling" class="range-slider" min="10" max="80" step="1" value="40" />
-            </div>
 
-            <div class="control-row">
-              <div class="control-label-row">
-                <span>Fee Saturation</span>
-                <span class="control-val" id="valSaturation">50%</span>
+              <!-- Protocol Bounds -->
+              <div class="control-group-title">
+                <span>Protocol Parameters</span>
+                <span class="status-badge badge-redacted">Redacted Launch Bounds</span>
               </div>
-              <p class="control-desc">Pressure point at which maximum ceiling fee is reached.</p>
-              <input type="range" id="inputSaturation" class="range-slider" min="10" max="100" step="5" value="50" />
-            </div>
 
-            <div class="control-row">
-              <div class="control-label-row">
-                <span>Simulation Horizon</span>
-                <span class="control-val" id="valHorizon">30 rds</span>
+              <div class="control-row">
+                <div class="control-label-row">
+                  <span>Fee Floor (F_min)</span>
+                  <span class="control-val" id="valFeeFloor">2%</span>
+                </div>
+                <input type="range" id="inputFeeFloor" class="range-slider" min="0" max="20" step="1" value="2" />
               </div>
-              <p class="control-desc">Number of feedback rounds to simulate.</p>
-              <input type="range" id="inputHorizon" class="range-slider" min="10" max="60" step="1" value="30" />
-            </div>
 
-            <div class="sim-actions-footer">
-              <button id="btnRunModel" class="btn-run-sim">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-                Run Model
-              </button>
+              <div class="control-row">
+                <div class="control-label-row">
+                  <span>Fee Ceiling (F_max)</span>
+                  <span class="control-val" id="valFeeCeiling">40%</span>
+                </div>
+                <input type="range" id="inputFeeCeiling" class="range-slider" min="10" max="80" step="1" value="40" />
+              </div>
+
+              <div class="control-row">
+                <div class="control-label-row">
+                  <span>Fee Saturation (S)</span>
+                  <span class="control-val" id="valSaturation">50%</span>
+                </div>
+                <input type="range" id="inputSaturation" class="range-slider" min="10" max="100" step="5" value="50" />
+              </div>
+
+              <div class="control-row">
+                <div class="control-label-row">
+                  <span>Simulation Horizon</span>
+                  <span class="control-val" id="valHorizon">30 rds</span>
+                </div>
+                <input type="range" id="inputHorizon" class="range-slider" min="10" max="60" step="1" value="30" />
+              </div>
+
+              <div class="sim-actions-footer">
+                <button id="btnRunModel" class="btn-run-sim">Run Simulation</button>
+              </div>
             </div>
           </aside>
 
-          <!-- Right Results Column -->
+          <!-- Dynamics Output View -->
           <div class="results-stage">
-
-            <!-- Result Verdict Banner -->
             <article id="classificationBanner" class="classification-banner" data-state="stable">
               <div class="result-badge-col">
                 <span class="result-eyebrow">Classification Result</span>
-                <h3 id="verdictText" class="result-verdict">STABLE</h3>
+                <div id="classificationBadge" class="result-state-pill">STABLE REGIME</div>
               </div>
-              <div class="result-desc-col">
-                <p id="verdictSummary">Under these assumptions, exit activity converges below the stability threshold.</p>
-                <div id="verdictReason" class="result-reason-text">Exit activity stayed below 0.20% for the final 5 rounds.</div>
+              <div class="result-summary-col">
+                <div id="classificationReason" class="result-reason-text">Exit velocity converged below threshold within the simulation horizon.</div>
+                <div class="result-metrics-row">
+                  <div class="metric-block">
+                    <span class="metric-lbl">Remaining Capital</span>
+                    <span class="metric-num" id="metricRemaining">88.4%</span>
+                  </div>
+                  <div class="metric-block">
+                    <span class="metric-lbl">Total Exited</span>
+                    <span class="metric-num" id="metricExited">11.6%</span>
+                  </div>
+                  <div class="metric-block">
+                    <span class="metric-lbl">Burned Share</span>
+                    <span class="metric-num" id="metricBurned">0.24%</span>
+                  </div>
+                  <div class="metric-block">
+                    <span class="metric-lbl">Redistributed</span>
+                    <span class="metric-num" id="metricRedistributed">0.24%</span>
+                  </div>
+                </div>
               </div>
             </article>
-
-            <!-- Metrics Counter Grid -->
-            <div class="metrics-stat-grid" aria-label="Simulation state summary">
-              <div class="stat-cell">
-                <span class="stat-label">Exit Pressure</span>
-                <strong id="statPressure" class="stat-num">0.0%</strong>
-              </div>
-              <div class="stat-cell">
-                <span class="stat-label">Resolution Fee</span>
-                <strong id="statFee" class="stat-num">2.0%</strong>
-              </div>
-              <div class="stat-cell">
-                <span class="stat-label">Remaining</span>
-                <strong id="statRemaining" class="stat-num">892</strong>
-              </div>
-              <div class="stat-cell">
-                <span class="stat-label">Cumulative Exited</span>
-                <strong id="statCumulative" class="stat-num">10.8%</strong>
-              </div>
-              <div class="stat-cell">
-                <span class="stat-label">Fee Burned</span>
-                <strong id="statBurn" class="stat-num">0.24%</strong>
-              </div>
-              <div class="stat-cell">
-                <span class="stat-label">Redistributed</span>
-                <strong id="statRedistrib" class="stat-num">0.24%</strong>
-              </div>
-            </div>
 
             <!-- Trajectory Chart -->
-            <article class="chart-container-card">
-              <div class="chart-card-top">
-                <div class="chart-title-group">
-                  <h4>Trajectory Over Rounds</h4>
-                </div>
+            <div class="chart-card">
+              <div class="chart-header">
+                <h4>Multi-Round Trajectory</h4>
                 <div class="chart-series-toggles">
-                  <button class="toggle-chip active" data-series="exit"><span class="chip-dot exit-dot"></span>Exit Rate</button>
-                  <button class="toggle-chip active" data-series="fee"><span class="chip-dot fee-dot"></span>Resolution Fee</button>
-                  <button class="toggle-chip active" data-series="pressure"><span class="chip-dot pressure-dot"></span>Exit Pressure</button>
+                  <label class="series-toggle"><input type="checkbox" id="toggleSeriesExit" checked /> Exit Rate</label>
+                  <label class="series-toggle"><input type="checkbox" id="toggleSeriesFee" checked /> Resolution Fee</label>
+                  <label class="series-toggle"><input type="checkbox" id="toggleSeriesPressure" checked /> Exit Pressure</label>
                 </div>
               </div>
-
-              <div class="trajectory-svg-wrap">
-                <svg id="trajectorySvg" viewBox="0 0 860 280" role="img" aria-label="Trajectory chart"></svg>
+              <div class="chart-container">
+                <svg id="trajectoryChartSvg" width="100%" height="220" viewBox="0 0 700 220" preserveAspectRatio="none"></svg>
               </div>
+            </div>
 
-              <!-- Interactive Round Scrubber -->
-              <div class="round-scrubber-bar">
-                <div class="scrubber-playback-controls">
-                  <button id="btnPlayPause" class="btn-play-pause" title="Play / Pause step simulation" aria-label="Play simulation">
-                    <svg id="playIcon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-                    <svg id="pauseIcon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-                  </button>
-                </div>
-
-                <div class="scrubber-range-wrap">
-                  <span class="scrubber-current-label" id="scrubberLabel">Round: 30</span>
-                  <input type="range" id="roundScrubber" class="range-slider" min="1" max="30" value="30" />
-                </div>
-              </div>
-            </article>
-
+            <!-- Export Buttons -->
+            <div class="export-actions-row">
+              <button id="btnExportCsv" class="btn-export">Export CSV</button>
+              <button id="btnExportJson" class="btn-export">Export JSON</button>
+            </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- STABILITY MAP (651 SIMULATIONS) -->
-    <section id="stability" class="stability-section">
+    <!-- MODULE 02: SPEC LAB (EXECUTABLE SPECIFICATION & RULES MATRIX) -->
+    <section id="speclab" class="research-section alt-bg">
       <div class="container">
         <div class="section-head">
           <div>
-            <div class="section-eyebrow">02 / Parameter Sweep</div>
-            <h2 class="section-heading">Where does the model change regime?</h2>
+            <div class="section-eyebrow">02 / Protocol Layer</div>
+            <h2 class="section-heading">SPEC LAB — Executable Reference Specification</h2>
           </div>
           <p class="section-subtext">
-            Each of the 651 cells represents one complete multi-round simulation. Click any cell to load its exact scenario into the simulator.
+            SpecLab converts publicly documented Standard Reserve rules into formal states, transitions, and machine-testable properties across 8 protocol domains.
           </p>
         </div>
 
-        <div class="stability-heatmap-card">
-          <div class="stability-grid-shell">
-            <div class="stability-axis-y">Fee Deterrence ↑</div>
-            <div class="heatmap-canvas-container">
-              <canvas id="stabilityHeatmapCanvas" width="900" height="420"></canvas>
-              <div id="heatmapTooltip" class="heatmap-tooltip"></div>
-            </div>
-            <div class="stability-axis-x">Contagion Strength →</div>
-          </div>
-
-          <div class="stability-legend-strip">
-            <div class="legend-items-wrap">
-              <span class="legend-item"><span class="legend-color-box box-stable"></span> Stable</span>
-              <span class="legend-item"><span class="legend-color-box box-borderline"></span> Borderline</span>
-              <span class="legend-item"><span class="legend-color-box box-cascade"></span> Cascade</span>
-            </div>
-            <span class="click-hint">Tip: Click any cell to test that parameter pair</span>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ROUND-BY-ROUND TRACE TABLE -->
-    <section class="trace-section">
-      <div class="container">
-        <div class="trace-card">
-          <div class="trace-header">
-            <div>
-              <h4>Complete Round Trace</h4>
-              <p style="font-size:12px; color:var(--ink-muted); margin-top:2px;">Deterministic accounting ledger across all simulation rounds.</p>
-            </div>
-            <div class="trace-export-btns">
-              <button id="btnExportCsv" class="btn-export">Download CSV</button>
-              <button id="btnExportJson" class="btn-export">Download JSON</button>
+        <!-- 3-Pane Spec Browser -->
+        <div class="spec-browser-layout">
+          <!-- Pane 1: Domains Filter -->
+          <div class="spec-domains-pane">
+            <h4 class="pane-title">SPEC DOMAINS</h4>
+            <div class="domain-filter-list" id="domainFilterList">
+              <!-- Rendered via JS -->
             </div>
           </div>
 
-          <div class="table-scroll-container">
-            <table class="trace-table">
-              <thead>
-                <tr>
-                  <th>Round</th>
-                  <th>Exit Rate</th>
-                  <th>Exit Pressure</th>
-                  <th>Resolution Fee</th>
-                  <th>Remaining</th>
-                  <th>Modeled Burn</th>
-                  <th>Redistributed</th>
-                  <th>Response Score</th>
-                </tr>
-              </thead>
-              <tbody id="traceTableBody"></tbody>
-            </table>
+          <!-- Pane 2: Rules Matrix List -->
+          <div class="spec-rules-pane">
+            <div class="pane-header-split">
+              <h4 class="pane-title">SPECIFICATION RULES (<span id="ruleCountDisplay">19</span>)</h4>
+              <input type="text" id="inputSearchRules" class="search-input" placeholder="Search rules (e.g. SR-BRANCH)..." />
+            </div>
+            <div class="rules-scroll-list" id="rulesScrollList">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Pane 3: Rule Provenance & Detail -->
+          <div class="spec-detail-pane" id="specDetailPane">
+            <div class="detail-placeholder">Select a specification rule to inspect evidence and verification chain.</div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- METHODOLOGY -->
-    <section id="methodology" class="methodology-section">
+    <!-- MODULE 03: INVARIANT REGISTRY -->
+    <section id="invariants" class="research-section">
       <div class="container">
         <div class="section-head">
           <div>
-            <div class="section-eyebrow">03 / Mathematical Formulation</div>
-            <h2 class="section-heading">Published shape vs. research assumptions.</h2>
+            <div class="section-eyebrow">03 / Property Testing</div>
+            <h2 class="section-heading">Invariant Registry & Foundry Suite</h2>
           </div>
           <p class="section-subtext">
-            REFLEX separates the mechanics derived from publicly described documentation from the behavioral response layer modeled for research.
+            What protocol properties must never become false? Every invariant is tested under randomized multi-action sequences using Foundry and reproducible state fuzzing.
           </p>
         </div>
 
-        <div class="methodology-grid">
-          <!-- Published Shape Card -->
-          <div class="method-card">
-            <div>
-              <div class="method-tag-row">
-                <span class="status-badge badge-published">Published Mechanism Shape</span>
-                <span style="font-family:var(--mono); font-size:11px; color:var(--ink-muted);">Trailing Window</span>
-              </div>
-              <h3>Exit Pressure & Quadratic Resolution Fee</h3>
-              <div class="method-equation-box">
-                P_t = W_t / (D_t + W_t)<br>
-                Fee_t = Floor + (Ceiling − Floor) × clamp(P_t / Saturation, 0, 1)²
-              </div>
-              <p>
-                Trailing exit volume over trailing exits plus currently held value determines exit pressure. The resolution fee follows a quadratic interpolation bounded between the fee floor and ceiling.
-              </p>
-            </div>
+        <div class="invariants-controls-bar">
+          <div class="inv-filter-pills" id="invFilterPills">
+            <button class="filter-pill active" data-filter="ALL">ALL (16)</button>
+            <button class="filter-pill" data-filter="SUPPLY">SUPPLY (3)</button>
+            <button class="filter-pill" data-filter="BRANCHES">BRANCHES (3)</button>
+            <button class="filter-pill" data-filter="CHARTERS">CHARTERS (2)</button>
+            <button class="filter-pill" data-filter="RESOLUTION">RESOLUTION (3)</button>
+            <button class="filter-pill" data-filter="ACCOUNTING">ACCOUNTING (1)</button>
+          </div>
+          <div class="inv-ci-status">
+            <span class="status-indicator pass"></span>
+            CI Status: <strong>PASS (256 Fuzz Runs, Depth 32)</strong>
+          </div>
+        </div>
+
+        <!-- Invariants Table -->
+        <div class="invariants-table-wrap">
+          <table class="research-table" id="invariantsTable">
+            <thead>
+              <tr>
+                <th>Invariant ID</th>
+                <th>Domain</th>
+                <th>Formal Property</th>
+                <th>Source Rule</th>
+                <th>Classification</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="invariantsTableBody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- MODULE 04: TRACE LAB -->
+    <section id="tracelab" class="research-section alt-bg">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <div class="section-eyebrow">04 / Forensics</div>
+            <h2 class="section-heading">Trace Lab — State Transition Sequence Replay</h2>
+          </div>
+          <p class="section-subtext">
+            Inspect step-by-step state changes, caller actions, pre/post state differences, and invariant evaluations across randomized sequence runs.
+          </p>
+        </div>
+
+        <div id="traceLabContainer">
+          <!-- Rendered via TraceLabPlayer JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- MODULE 05: PROVENANCE PROOF CHAIN -->
+    <section id="provenance" class="research-section">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <div class="section-eyebrow">05 / Evidence Hierarchy</div>
+            <h2 class="section-heading">Research Provenance Graph</h2>
+          </div>
+          <p class="section-subtext">
+            From Authoritative Primary Source → Specification Rule → Solidity Model → Protocol Invariant → Foundry Test Result.
+          </p>
+        </div>
+
+        <div class="provenance-viewer-wrap" id="provenanceViewer">
+          <!-- Rendered via JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- MODULE 06: RESEARCH & ASSUMPTIONS -->
+    <section id="assumptions" class="research-section alt-bg">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <div class="section-eyebrow">06 / Methodological Transparency</div>
+            <h2 class="section-heading">Assumptions, Unknowns & Source Matrix</h2>
+          </div>
+          <p class="section-subtext">
+            We explicitly isolate verified protocol rules from research assumptions, unrevealed launch bounds, and third-party community derivations.
+          </p>
+        </div>
+
+        <div class="assumptions-grid">
+          <div class="assump-card">
+            <span class="assump-badge confirmed">CONFIRMED (14)</span>
+            <h4>Primary Whitepaper Rules</h4>
+            <p>Directly documented in Standard Reserve Whitepaper v1 and official disclosures. Modeled in SpecLab contracts.</p>
           </div>
 
-          <!-- REFLEX Model Card -->
-          <div class="method-card">
-            <div>
-              <div class="method-tag-row">
-                <span class="status-badge badge-model">REFLEX Research Assumption</span>
-                <span style="font-family:var(--mono); font-size:11px; color:var(--ink-muted);">Behavioral Layer</span>
-              </div>
-              <h3>Participant Response & Contagion Feedback</h3>
-              <div class="method-equation-box">
-                Score_t = Baseline + (c × Exit_{t-1}) − (d × Fee_t)<br>
-                Pr(Exit_t) = logistic(β × Score_t)
-              </div>
-              <p>
-                Modeled participants experience contagion from recent exit rates while being deterred by elevated resolution fees. This sensitivity model evaluates system stability under varying assumptions.
-              </p>
-            </div>
+          <div class="assump-card">
+            <span class="assump-badge derived">DERIVED (5)</span>
+            <h4>Mathematical Invariants</h4>
+            <p>Formal conservation equations and terminal state bounds logically following from primary rules.</p>
+          </div>
+
+          <div class="assump-card">
+            <span class="assump-badge reflex">REFLEX ASSUMPTIONS (6)</span>
+            <h4>Behavioral Sensitivities</h4>
+            <p>Explicit model assumptions (contagion γ, fee deterrence δ, sigmoid response). Never treated as protocol facts.</p>
+          </div>
+
+          <div class="assump-card">
+            <span class="assump-badge redacted">REDACTED / UNKNOWN (4)</span>
+            <h4>Unrevealed Launch Bounds</h4>
+            <p>Launch fee floor ($F_{min}$), ceiling ($F_{max}$), saturation denominator ($S$), and epoch timings awaiting deployment.</p>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- SOURCES & CITATIONS -->
-    <section id="sources" class="sources-section">
+    <!-- MODULE 07: LIVE DIFFERENTIAL -->
+    <section id="differential" class="research-section">
       <div class="container">
         <div class="section-head">
           <div>
-            <div class="section-eyebrow">04 / Source Provenance</div>
-            <h2 class="section-heading">Confidence & verification ledger.</h2>
+            <div class="section-eyebrow">07 / Future Architecture</div>
+            <h2 class="section-heading">Canonical Contract Differential Lab</h2>
+          </div>
+          <p class="section-subtext">
+            Automated divergence testing comparing the SpecLab reference specification against production bytecode upon deployment.
+          </p>
+        </div>
+
+        <div class="diff-terminal-box">
+          <div class="diff-status-row">
+            <div class="diff-chip wait">DEPLOYMENT ADAPTER: AWAITING CANONICAL CONTRACTS</div>
+            <div class="diff-chip ready">REFERENCE SPECIFICATION: READY</div>
+            <div class="diff-chip ready">FOUNDRY HARNESS: READY</div>
+          </div>
+          <p class="diff-terminal-body">
+            Once canonical contracts and verified deployment parameters are released on Ethereum / Uniswap v4, SpecLab will replay identical action sequences against both the reference model and deployed contracts to detect behavioral divergences. Zero fake RPC reads or placeholder contract addresses are used.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- MODULE 08: ABOUT -->
+    <section id="about" class="research-section alt-bg">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <div class="section-eyebrow">08 / Authorship & Methodology</div>
+            <h2 class="section-heading">About REFLEX Research Laboratory</h2>
           </div>
         </div>
 
-        <div class="sources-list-card">
-          <div class="source-item">
-            <div>
-              <span class="status-badge badge-published">Third-Party Derived</span>
-            </div>
-            <div>
-              <h4>Central Bank Bot Methodology</h4>
-              <p>Independent methodology documenting trailing 7-day withdrawals, quadratic resolution fee shape, and 50/50 burn/stayer split.</p>
-            </div>
-            <div>
-              <a href="https://centralbank.bot/methodology.html" target="_blank" rel="noopener noreferrer" class="source-link-btn">View Source ↗</a>
-            </div>
+        <div class="about-grid">
+          <div class="about-card">
+            <h3>Independent Mechanism Research</h3>
+            <p>
+              REFLEX is an independent research environment for studying The Standard Reserve from two complementary angles: exit-feedback behavioral dynamics (Dynamics) and executable protocol specifications (SpecLab).
+            </p>
+            <p>
+              <strong>Disclaimer:</strong> REFLEX is not affiliated with The Standard Reserve. It is not an audit, financial advice, or an endorsement. Unpublished implementation details are marked rather than guessed.
+            </p>
           </div>
 
-          <div class="source-item">
-            <div>
-              <span class="status-badge badge-published">Protocol Concept</span>
-            </div>
-            <div>
-              <h4>The Standard Reserve</h4>
-              <p>Public documentation and descriptions of the decentralized reserve resolution mechanism.</p>
-            </div>
-            <div>
-              <a href="https://standardreserve.xyz" target="_blank" rel="noopener noreferrer" class="source-link-btn">Standard Reserve ↗</a>
-            </div>
-          </div>
-
-          <div class="source-item">
-            <div>
-              <span class="status-badge badge-model">Research Model</span>
-            </div>
-            <div>
-              <h4>REFLEX Simulation Engine</h4>
-              <p>Deterministic multi-round feedback engine and sensitivity sweep model.</p>
-            </div>
-            <div>
-              <a href="#methodology" class="source-link-btn">Model Spec ↓</a>
+          <div class="about-card">
+            <h3>Author Attribution</h3>
+            <p>Designed and built by <strong>Asad Lee</strong>.</p>
+            <div class="author-links">
+              <a href="https://github.com/Asadlee24" target="_blank" rel="noopener noreferrer" class="btn-secondary">GitHub Profile ↗</a>
+              <a href="https://github.com/Asadlee24/reflex-standard-reserve" target="_blank" rel="noopener noreferrer" class="btn-primary">Repository ↗</a>
             </div>
           </div>
         </div>
@@ -488,48 +518,41 @@
 
   </main>
 
-  <!-- FOOTER -->
-  <footer class="site-footer">
-    <div class="container">
-      <div class="footer-grid">
-        <div class="footer-brand-col">
-          <h3>REFLEX</h3>
-          <p>Independent mechanism research exploring repeated exit dynamics around The Standard Reserve's publicly described resolution model.</p>
-          <div class="creator-attribution">
-            Built by <a href="https://asad-lee-portfolio.vercel.app" target="_blank" rel="noopener noreferrer" class="creator-link">Asad Lee ↗</a>
-          </div>
-        </div>
-
-        <div class="footer-links-col">
-          <h5>Navigation</h5>
-          <ul>
-            <li><a href="#simulation">Simulation Model</a></li>
-            <li><a href="#stability">Stability Sweep</a></li>
-            <li><a href="#methodology">Mathematical Spec</a></li>
-            <li><a href="#sources">Sources & Status</a></li>
-          </ul>
-        </div>
-
-        <div class="footer-links-col">
-          <h5>Research Artifacts</h5>
-          <ul>
-            <li><a href="https://github.com/Asadlee24/reflex-standard-reserve" target="_blank" rel="noopener noreferrer">GitHub Repository ↗</a></li>
-            <li><a href="https://asad-lee-portfolio.vercel.app" target="_blank" rel="noopener noreferrer">Creator Portfolio ↗</a></li>
-            <li><a href="https://centralbank.bot/simulator.html" target="_blank" rel="noopener noreferrer">Central Bank Bot Simulator ↗</a></li>
-          </ul>
-        </div>
+  <!-- Command Palette Modal (Ctrl+K) -->
+  <div id="cmdPaletteModal" class="cmd-modal-backdrop" aria-hidden="true">
+    <div class="cmd-modal-dialog">
+      <div class="cmd-input-wrap">
+        <input type="text" id="cmdInput" class="cmd-search-input" placeholder="Type a command or jump to module..." />
+        <span class="cmd-esc-hint">ESC</span>
       </div>
+      <div class="cmd-results-list" id="cmdResultsList">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+  </div>
 
-      <div class="footer-disclaimer">
-        REFLEX is an independent research project and is not affiliated with, operated by, endorsed by, or reviewed by The Standard Reserve. It does not predict real participant behavior and does not represent deployed protocol contracts. Results describe the behavior of explicitly stated model assumptions and are not financial advice, a security finding, or a prediction of protocol performance.
+  <!-- Toast Notification -->
+  <div id="copyToast" class="toast-popup" aria-live="polite">Command copied to clipboard</div>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="footer-left">
+        <span class="footer-brand">REFLEX</span>
+        <span class="footer-sub">Standard Reserve Research Laboratory</span>
+      </div>
+      <div class="footer-center">
+        <span>Built by <a href="https://github.com/Asadlee24" target="_blank" rel="noopener noreferrer">Asad Lee</a></span>
+      </div>
+      <div class="footer-right">
+        <a href="https://github.com/Asadlee24/reflex-standard-reserve" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="#overview">Overview</a>
+        <a href="#speclab">SpecLab</a>
+        <a href="#invariants">Invariants</a>
       </div>
     </div>
   </footer>
 
-  <!-- Toast message container -->
-  <div id="toastMessage" class="toast-msg" role="status">Link copied to clipboard</div>
-
-  <!-- App logic -->
   <script type="module" src="./app.js"></script>
 </body>
 </html>

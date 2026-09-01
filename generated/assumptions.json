@@ -1,0 +1,73 @@
+[
+  {
+    "id": "ASM-001",
+    "name": "Pressure Denominator Guard",
+    "classification": "REFLEX ASSUMPTION",
+    "assumedValue": "1e-12 (epsilon)",
+    "primaryStatus": "REDACTED",
+    "risk": "Minor numerical smoothing distortion near empty liquidity pool",
+    "affectedModules": [
+      "ResolutionSpec",
+      "REFLEX Dynamics"
+    ]
+  },
+  {
+    "id": "ASM-002",
+    "name": "Fee Floor (F_min)",
+    "classification": "REFLEX ASSUMPTION",
+    "assumedValue": "2.0% (0.02)",
+    "primaryStatus": "REDACTED",
+    "risk": "Shifts baseline exit friction",
+    "affectedModules": [
+      "ResolutionSpec",
+      "INV-RESOLUTION-001"
+    ]
+  },
+  {
+    "id": "ASM-003",
+    "name": "Fee Ceiling (F_max)",
+    "classification": "REFLEX ASSUMPTION",
+    "assumedValue": "40.0% (0.40)",
+    "primaryStatus": "REDACTED",
+    "risk": "Alters peak deterrence in cascade regimes",
+    "affectedModules": [
+      "ResolutionSpec",
+      "INV-RESOLUTION-001"
+    ]
+  },
+  {
+    "id": "ASM-004",
+    "name": "Fee Saturation Pressure (S)",
+    "classification": "REFLEX ASSUMPTION",
+    "assumedValue": "50.0% (0.50)",
+    "primaryStatus": "REDACTED",
+    "risk": "Changes steepness of quadratic fee curve",
+    "affectedModules": [
+      "ResolutionSpec",
+      "REFLEX Dynamics"
+    ]
+  },
+  {
+    "id": "ASM-005",
+    "name": "Trailing Pressure Window",
+    "classification": "SECONDARY_ONLY",
+    "assumedValue": "7 Days / Epochs",
+    "primaryStatus": "SECONDARY_ONLY (Central Bank Bot)",
+    "risk": "Changes memory window of exit impact",
+    "affectedModules": [
+      "ResolutionSpec",
+      "REFLEX Dynamics"
+    ]
+  },
+  {
+    "id": "ASM-006",
+    "name": "Participant Exit Sensitivity Function",
+    "classification": "REFLEX ASSUMPTION",
+    "assumedValue": "Logistic / Sigmoid",
+    "primaryStatus": "REFLEX ORIGINAL",
+    "risk": "Behavioral model assumption only — not a protocol invariant",
+    "affectedModules": [
+      "REFLEX Dynamics"
+    ]
+  }
+]

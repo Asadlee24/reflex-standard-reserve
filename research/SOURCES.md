@@ -1,21 +1,54 @@
-# REFLEX — Source ledger
+# REFLEX — Research Sources & Evidentiary Hierarchy
 
-Last checked: 31 August 2026.
+**REFLEX Research Laboratory**  
+*Curated by Asad Lee (GitHub: [@Asadlee24](https://github.com/Asadlee24))*  
+*Last Updated: September 2026*
 
-REFLEX deliberately distinguishes protocol claims from third-party interpretation and its own research assumptions. The Standard Reserve production contracts were not public in the sources checked for this MVP, so this is **not** a contract model.
+REFLEX maintains an evidentiary separation between **primary protocol specifications**, **secondary community interpretations**, and **research assumptions**.
 
-| Item | Status used in REFLEX | Source | What the source supports | What REFLEX does not claim |
-|---|---|---|---|---|
-| Protocol is pre-Genesis / feeds not live | Third-party current-state description | https://centralbank.bot/ | Central Bank Bot states it is community-built and that feeds go live when contracts do. | That Central Bank Bot is official. |
-| Exit pressure | Third-party derivation from whitepaper v1 | https://centralbank.bot/methodology.html | Trailing 7-day withdrawals W, still-held D, pressure `P = W / max(D + W, redacted)`. | The redacted denominator guard. |
-| Resolution fee | Third-party derivation from whitepaper v1 | https://centralbank.bot/methodology.html | Fee is quadratic in pressure from a redacted floor to redacted ceiling. | Exact launch floor, ceiling or saturation. |
-| Fee split | Third-party derivation from whitepaper v1 | https://centralbank.bot/methodology.html | Half of each resolution fee is described as burned, half paid to bankers who stayed. | Exact implementation details. |
-| Existing static simulation | Direct observation | https://centralbank.bot/simulator.html | Simulation 02 takes a weekly exit-share input and computes a single fee/burn/redistribution result. | Any claim that Central Bank Bot endorses REFLEX. |
-| 15 contracts / audits | Official-account statement mirrored publicly | https://x.noodl3.net/febrinoabstract | Mirror shows @standard_rsv stating first audit round began and 15 contracts work in sync. | Auditor identity or audit result. |
-| No token/NFT live; no surprise launch | Official-account statement mirrored publicly | https://x.noodl3.net/febrinoabstract/with_replies | Mirror reproduces @standard_rsv's Aug 23 statement. | Current deployment status beyond the checked date. |
+---
 
-## Primary-source limitation
+## Evidentiary Hierarchy
 
-The official Standard Reserve website is a client-rendered application and was not reliably retrievable by the research environment used to generate this MVP. REFLEX therefore does **not** label Central Bank Bot's methodology as an official Standard Reserve source. Its formula layer is marked `third-party-derived` in the interface and code.
+```mermaid
+graph TD
+    T1["Tier 1: Official Whitepaper & Specification"] --> T2["Tier 2: Official Standard Reserve Documentation & Site"]
+    T2 --> T3["Tier 3: Official @standard_rsv Announcements"]
+    T3 --> T4["Tier 4: 0xBeans (Founder) Technical Disclosures"]
+    T4 --> T5["Tier 5: Canonical Smart Contract Bytecode (Pending)"]
+    T5 --> T6["Tier 6: Dependency Specifications (Uniswap v4, Vickrey)"]
+    T6 --> T7["Tier 7: Third-Party / Community Analysis (Central Bank Bot)"]
+```
 
-Before any public launch of REFLEX, re-check the official whitepaper and replace third-party derivations with exact primary-source citations wherever possible.
+---
+
+## Primary Sources Directory
+
+### Tier 1 & 2: Official Protocol Documentation
+- **Official Website**: [standardreserve.xyz](https://www.standardreserve.xyz/)
+- **Whitepaper v1**: [standardreserve.xyz/whitepaper](https://www.standardreserve.xyz/whitepaper/)
+- **Protocol Application Overview**: [standardreserve.xyz/app/protocol](https://www.standardreserve.xyz/app/protocol/)
+- **Minting & Banker Guide**: [standardreserve.xyz/app/mint](https://www.standardreserve.xyz/app/mint/)
+- **About Standard Reserve**: [standardreserve.xyz/app/about](https://www.standardreserve.xyz/app/about/)
+
+### Tier 3 & 4: Official Accounts & Founder Disclosures
+- **Official Twitter / X**: [@standard_rsv](https://x.com/standard_rsv)
+- **Founder Twitter / X**: [@0xbeans](https://x.com/0xbeans)
+- **Founder GitHub**: [github.com/0xBeans](https://github.com/0xBeans)
+  - Reference Architectures: `DRIP20`, `Mirakai`, `IAmTheOptimizor`, `GenesisAndConclusion`
+
+### Tier 6: Dependency & Auction References
+- **Uniswap v4 Core Architecture**: [docs.uniswap.org/contracts/v4/overview](https://docs.uniswap.org/contracts/v4/overview)
+- **Vickrey / Sealed-Bid Reference**: [github.com/Philogy/create2-vickrey-contracts](https://github.com/Philogy/create2-vickrey-contracts)
+
+### Tier 7: Community Analysis (Non-Authoritative)
+- **Central Bank Bot Methodology**: [centralbank.bot/methodology.html](https://centralbank.bot/methodology.html)
+- **Central Bank Bot Simulator**: [centralbank.bot/simulator.html](https://centralbank.bot/simulator.html)
+
+---
+
+## Mandatory Citation Rules
+
+1. **No Silent Truths**: A claim from a community tool (Tier 7) must never be presented as an official protocol rule (`CONFIRMED`).
+2. **Explicit Uncertainty**: Redacted parameters are classified as `REDACTED` and bounded via configurable research assumptions.
+3. **No Fake Authority**: SpecLab does not claim to have audited unreleased bytecode or received insider parameters.

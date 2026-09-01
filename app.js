@@ -1,8 +1,9 @@
 import { simulate, MODEL_DEFAULTS } from './lib/model.js';
-import { stabilitySweep } from './lib/sweep.js';
 import { resultToCsv, downloadText } from './lib/export.js';
-import { sourceRegistry } from './lib/mechanism.js';
 import { ReflexSculpture } from './lib/sculpture3d.js';
+import { loadSpecLabData, SPEC_DOMAINS } from './lib/speclab-data.js';
+import { renderProvenanceChain } from './lib/provenance.js';
+import { TraceLabPlayer } from './lib/tracelab.js';
 
 // DOM selector helpers
 const $ = (sel) => document.querySelector(sel);
@@ -13,30 +14,25 @@ const state = {
   theme: 'light',
   config: { ...MODEL_DEFAULTS },
   result: null,
-  sweep: null,
   activeRoundIndex: 0,
-  isPlaying: false,
-  playTimer: null,
   visibleSeries: { exit: true, fee: true, pressure: true },
   sculpture: null,
+  speclab: null,
+  activeSpecDomain: 'ALL',
+  selectedRuleId: 'SR-SUPPLY-001',
+  activeInvFilter: 'ALL',
+  tracePlayer: null,
 };
 
-// Resolved color helper (gets actual CSS custom property value)
-function resolveColor(cssVar, fallback) {
-  const val = getComputedStyle(document.documentElement).getPropertyValue(cssVar).trim();
-  return val || fallback;
-}
-
-// Number and percentage formatters
+// Formatters
 const formatPct = (v, digits = 1) => `${(v * 100).toFixed(digits)}%`;
 const formatNum = (v, digits = 2) => Number(v).toFixed(digits);
 
 // ==========================================================================
-// THEME MANAGEMENT (Default: Light Mode)
+// THEME MANAGEMENT
 // ==========================================================================
 function initTheme() {
   const saved = localStorage.getItem('reflex_theme');
-  // Default is LIGHT unless the user explicitly saved 'dark' previously
   const initialTheme = saved === 'dark' ? 'dark' : 'light';
   setTheme(initialTheme);
 
@@ -55,593 +51,483 @@ function setTheme(theme) {
   }
   localStorage.setItem('reflex_theme', theme);
 
-  // Update 3D sculpture theme
   if (state.sculpture) {
     state.sculpture.setTheme(theme);
   }
 
-  // Redraw canvas heatmap
-  if (state.sweep) {
-    drawHeatmap();
-  }
-
-  // Redraw SVG trajectory chart
   if (state.result) {
     drawTrajectory(state.result);
   }
 }
 
 // ==========================================================================
-// URL QUERY STATE
+// TOAST POPUP HELPER
 // ==========================================================================
-function readUrlParams() {
-  const params = new URLSearchParams(window.location.search);
-  if (params.has('shock')) state.config.initialShock = Number(params.get('shock')) / 100;
-  if (params.has('contagion')) state.config.contagionStrength = Number(params.get('contagion'));
-  if (params.has('deterrence')) state.config.feeDeterrence = Number(params.get('deterrence'));
-  if (params.has('floor')) state.config.feeFloor = Number(params.get('floor')) / 100;
-  if (params.has('ceiling')) state.config.feeCeiling = Number(params.get('ceiling')) / 100;
-  if (params.has('saturation')) state.config.feeSaturation = Number(params.get('saturation')) / 100;
-  if (params.has('horizon')) state.config.horizon = Number(params.get('horizon'));
-}
-
-function syncInputsFromConfig() {
-  $('#inputInitialShock').value = Math.round(state.config.initialShock * 100);
-  $('#inputContagion').value = state.config.contagionStrength;
-  $('#inputDeterrence').value = state.config.feeDeterrence;
-  $('#inputFeeFloor').value = Math.round(state.config.feeFloor * 100);
-  $('#inputFeeCeiling').value = Math.round(state.config.feeCeiling * 100);
-  $('#inputSaturation').value = Math.round(state.config.feeSaturation * 100);
-  $('#inputHorizon').value = state.config.horizon;
-  syncControlLabels();
-}
-
-function syncConfigFromInputs() {
-  state.config = {
-    ...MODEL_DEFAULTS,
-    initialShock: Number($('#inputInitialShock').value) / 100,
-    contagionStrength: Number($('#inputContagion').value),
-    feeDeterrence: Number($('#inputDeterrence').value),
-    feeFloor: Number($('#inputFeeFloor').value) / 100,
-    feeCeiling: Number($('#inputFeeCeiling').value) / 100,
-    feeSaturation: Number($('#inputSaturation').value) / 100,
-    horizon: Number($('#inputHorizon').value),
-  };
-}
-
-function syncControlLabels() {
-  $('#valInitialShock').textContent = `${$('#inputInitialShock').value}%`;
-  $('#valContagion').textContent = Number($('#inputContagion').value).toFixed(1);
-  $('#valDeterrence').textContent = Number($('#inputDeterrence').value).toFixed(1);
-  $('#valFeeFloor').textContent = `${$('#inputFeeFloor').value}%`;
-  $('#valFeeCeiling').textContent = `${$('#inputFeeCeiling').value}%`;
-  $('#valSaturation').textContent = `${$('#inputSaturation').value}%`;
-  $('#valHorizon').textContent = `${$('#inputHorizon').value} rds`;
-}
-
-function showToast(msg) {
-  const toast = $('#toastMessage');
+function showToast(message) {
+  const toast = $('#copyToast');
   if (!toast) return;
-  toast.textContent = msg;
+  toast.textContent = message;
   toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), 2800);
+  setTimeout(() => toast.classList.remove('show'), 2500);
 }
 
-function shareScenario() {
-  const params = new URLSearchParams({
-    shock: Math.round(state.config.initialShock * 100),
-    contagion: state.config.contagionStrength,
-    deterrence: state.config.feeDeterrence,
-    floor: Math.round(state.config.feeFloor * 100),
-    ceiling: Math.round(state.config.feeCeiling * 100),
-    saturation: Math.round(state.config.feeSaturation * 100),
-    horizon: state.config.horizon,
+// ==========================================================================
+// MODULE 01: DYNAMICS (EXIT FEEDBACK SIMULATOR)
+// ==========================================================================
+function initDynamics() {
+  bindSlider('inputInitialShock', 'valInitialShock', (v) => (state.config.initialShock = v / 100), (v) => `${v}%`);
+  bindSlider('inputContagion', 'valContagion', (v) => (state.config.contagionStrength = v), (v) => Number(v).toFixed(1));
+  bindSlider('inputDeterrence', 'valDeterrence', (v) => (state.config.feeDeterrence = v), (v) => Number(v).toFixed(1));
+  bindSlider('inputFeeFloor', 'valFeeFloor', (v) => (state.config.feeFloor = v / 100), (v) => `${v}%`);
+  bindSlider('inputFeeCeiling', 'valFeeCeiling', (v) => (state.config.feeCeiling = v / 100), (v) => `${v}%`);
+  bindSlider('inputSaturation', 'valSaturation', (v) => (state.config.feeSaturation = v / 100), (v) => `${v}%`);
+  bindSlider('inputHorizon', 'valHorizon', (v) => (state.config.horizon = parseInt(v, 10)), (v) => `${v} rds`);
+
+  // Presets
+  $$('.preset-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      $$('.preset-btn').forEach((b) => b.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+      const preset = e.currentTarget.dataset.preset;
+      applyPreset(preset);
+    });
   });
-  const url = `${window.location.origin}${window.location.pathname}?${params.toString()}#simulation`;
-  
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(url).then(() => {
-      showToast('Scenario link copied to clipboard!');
-    }).catch(() => {
-      window.history.replaceState(null, '', url);
-      showToast('Scenario URL updated in address bar');
-    });
-  } else {
-    window.history.replaceState(null, '', url);
-    showToast('Scenario URL updated in address bar');
-  }
+
+  // Run button
+  $('#btnRunModel')?.addEventListener('click', runSimulation);
+
+  // Reset button
+  $('#btnResetControls')?.addEventListener('click', () => {
+    state.config = { ...MODEL_DEFAULTS };
+    syncInputs();
+    runSimulation();
+  });
+
+  // Chart series toggles
+  $('#toggleSeriesExit')?.addEventListener('change', (e) => {
+    state.visibleSeries.exit = e.target.checked;
+    if (state.result) drawTrajectory(state.result);
+  });
+  $('#toggleSeriesFee')?.addEventListener('change', (e) => {
+    state.visibleSeries.fee = e.target.checked;
+    if (state.result) drawTrajectory(state.result);
+  });
+  $('#toggleSeriesPressure')?.addEventListener('change', (e) => {
+    state.visibleSeries.pressure = e.target.checked;
+    if (state.result) drawTrajectory(state.result);
+  });
+
+  // Exports
+  $('#btnExportCsv')?.addEventListener('click', () => {
+    if (!state.result) return;
+    const csv = resultToCsv(state.result);
+    downloadText('reflex-dynamics.csv', csv, 'text/csv');
+    showToast('Exported dynamics to CSV');
+  });
+
+  $('#btnExportJson')?.addEventListener('click', () => {
+    if (!state.result) return;
+    const json = JSON.stringify(state.result, null, 2);
+    downloadText('reflex-dynamics.json', json, 'application/json');
+    showToast('Exported dynamics to JSON');
+  });
+
+  // Initial Run
+  runSimulation();
 }
 
-// ==========================================================================
-// SIMULATION & METRICS RENDERING
-// ==========================================================================
-function updateClassificationBanner(result) {
-  const banner = $('#classificationBanner');
-  const verdictText = $('#verdictText');
-  const verdictSummary = $('#verdictSummary');
-  const verdictReason = $('#verdictReason');
+function bindSlider(inputId, valId, updateFn, formatFn) {
+  const input = $(`#${inputId}`);
+  const valDisplay = $(`#${valId}`);
+  if (!input || !valDisplay) return;
 
-  const classification = result.classification;
-  banner.dataset.state = classification;
-
-  if (classification === 'stable') {
-    verdictText.textContent = 'STABLE';
-    verdictSummary.textContent = 'Under these assumptions, exit activity converges below the stability threshold.';
-  } else if (classification === 'cascade') {
-    verdictText.textContent = 'CASCADE';
-    verdictSummary.textContent = 'Under these assumptions, repeated exit activity compounds into a self-reinforcing run.';
-  } else {
-    verdictText.textContent = 'BORDERLINE';
-    verdictSummary.textContent = 'Under these assumptions, the exit trajectory remains unresolved within the horizon.';
-  }
-
-  verdictReason.textContent = result.classificationReason;
+  input.addEventListener('input', (e) => {
+    const val = parseFloat(e.target.value);
+    updateFn(val);
+    valDisplay.textContent = formatFn(val);
+    runSimulation();
+  });
 }
 
-function updateRoundMetrics(roundData, result) {
-  $('#statPressure').textContent = formatPct(roundData.pressureAfter, 1);
-  $('#statFee').textContent = formatPct(roundData.feeAfter, 1);
-  $('#statRemaining').textContent = Math.round(roundData.participantsRemaining).toLocaleString();
-  $('#statCumulative').textContent = formatPct(roundData.cumulativeExitedShare, 1);
-  $('#statBurn').textContent = formatPct(result.totalBurnShare, 2);
-  $('#statRedistrib').textContent = formatPct(result.totalRedistributionShare, 2);
+function syncInputs() {
+  const c = state.config;
+  setVal('inputInitialShock', 'valInitialShock', c.initialShock * 100, `${Math.round(c.initialShock * 100)}%`);
+  setVal('inputContagion', 'valContagion', c.contagionStrength, c.contagionStrength.toFixed(1));
+  setVal('inputDeterrence', 'valDeterrence', c.feeDeterrence, c.feeDeterrence.toFixed(1));
+  setVal('inputFeeFloor', 'valFeeFloor', c.feeFloor * 100, `${Math.round(c.feeFloor * 100)}%`);
+  setVal('inputFeeCeiling', 'valFeeCeiling', c.feeCeiling * 100, `${Math.round(c.feeCeiling * 100)}%`);
+  setVal('inputSaturation', 'valSaturation', c.feeSaturation * 100, `${Math.round(c.feeSaturation * 100)}%`);
+  setVal('inputHorizon', 'valHorizon', c.horizon, `${c.horizon} rds`);
+}
 
-  // Update mechanism flow summary cards
-  $('#cardShockVal').textContent = `${Math.round(state.config.initialShock * 100)}%`;
-  $('#cardPressureVal').textContent = formatNum(roundData.pressureAfter, 3);
-  $('#cardFeeVal').textContent = formatPct(roundData.feeAfter, 1);
-  $('#cardResponseVal').textContent = roundData.behavioralScore == null ? 'Exogenous' : formatNum(roundData.behavioralScore, 2);
+function setVal(inputId, valId, value, displayStr) {
+  const input = $(`#${inputId}`);
+  const display = $(`#${valId}`);
+  if (input) input.value = value;
+  if (display) display.textContent = displayStr;
+}
 
-  // Update 3D sculpture node weights
-  if (state.sculpture) {
-    state.sculpture.updateState({
-      classification: result.classification,
-      activeRound: roundData.round,
-      exitRate: roundData.exitRate,
-      pressure: roundData.pressureAfter,
-      fee: roundData.feeAfter,
-      responseScore: roundData.behavioralScore,
-    });
+function applyPreset(preset) {
+  if (preset === 'baseline') {
+    state.config = { ...MODEL_DEFAULTS };
+  } else if (preset === 'contagion') {
+    state.config = { ...MODEL_DEFAULTS, initialShock: 0.15, contagionStrength: 24, feeDeterrence: 4 };
+  } else if (preset === 'deterrence') {
+    state.config = { ...MODEL_DEFAULTS, initialShock: 0.10, contagionStrength: 12, feeDeterrence: 14 };
   }
+  syncInputs();
+  runSimulation();
+}
 
-  // Highlight active table row
-  $$('#traceTableBody tr').forEach((tr, i) => {
-    if (i === roundData.round) {
-      tr.classList.add('active-row');
-    } else {
-      tr.classList.remove('active-row');
+function runSimulation() {
+  try {
+    state.result = simulate(state.config);
+    renderResults(state.result);
+    drawTrajectory(state.result);
+
+    if (state.sculpture) {
+      state.sculpture.updateState({
+        classification: state.result.classification,
+        exitRate: state.result.rounds[0]?.exitRate || 0.1,
+        pressure: state.result.rounds[0]?.pressureAfter || 0.1,
+        fee: state.result.rounds[0]?.feeAfter || 0.05,
+      });
     }
-  });
+  } catch (err) {
+    console.error('Simulation error', err);
+  }
 }
 
-// ==========================================================================
-// TRAJECTORY CHART (SVG)
-// ==========================================================================
-function linePath(values, width, height, maxY = 1) {
-  if (!values.length) return '';
-  const padX = 24;
-  const padY = 20;
-  const usableW = width - padX * 2;
-  const usableH = height - padY * 2;
-  return values.map((v, i) => {
-    const x = padX + (values.length === 1 ? 0 : (i / (values.length - 1)) * usableW);
-    const y = padY + usableH - (Math.min(maxY, Math.max(0, v)) / maxY) * usableH;
-    return `${i === 0 ? 'M' : 'L'}${x.toFixed(2)} ${y.toFixed(2)}`;
-  }).join(' ');
+function renderResults(result) {
+  const banner = $('#classificationBanner');
+  const badge = $('#classificationBadge');
+  const reason = $('#classificationReason');
+
+  if (banner && badge && reason) {
+    banner.setAttribute('data-state', result.classification);
+    badge.textContent = `${result.classification.toUpperCase()} REGIME`;
+    reason.textContent = result.classificationReason;
+  }
+
+  $('#metricRemaining').textContent = formatPct(result.finalRemainingShare);
+  $('#metricExited').textContent = formatPct(result.cumulativeExitedShare);
+  $('#metricBurned').textContent = formatPct(result.totalBurnShare);
+  $('#metricRedistributed').textContent = formatPct(result.totalRedistributionShare);
 }
 
 function drawTrajectory(result) {
-  const svg = $('#trajectorySvg');
-  if (!svg) return;
+  const svg = $('#trajectoryChartSvg');
+  if (!svg || !result.rounds.length) return;
 
-  const width = 860;
-  const height = 280;
+  const w = 700;
+  const h = 220;
+  const pad = { top: 20, right: 30, bottom: 30, left: 40 };
+  const rounds = result.rounds;
+  const n = rounds.length;
 
-  const exit = result.rounds.map((r) => r.exitRate);
-  const fee = result.rounds.map((r) => r.feeAfter);
-  const pressure = result.rounds.map((r) => r.pressureAfter);
-  const maxY = Math.max(0.12, ...exit, ...fee, ...pressure) * 1.15;
+  const getX = (idx) => pad.left + (idx / Math.max(1, n - 1)) * (w - pad.left - pad.right);
+  const getY = (val) => h - pad.bottom - val * (h - pad.top - pad.bottom);
 
-  svg.innerHTML = '';
+  let pathsHtml = `
+    <line x1="${pad.left}" y1="${h - pad.bottom}" x2="${w - pad.right}" y2="${h - pad.bottom}" stroke="var(--border)" stroke-width="1" />
+    <line x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${h - pad.bottom}" stroke="var(--border)" stroke-width="1" />
+  `;
 
-  // Resolve colors at draw time
-  const isDark = state.theme === 'dark';
-  const gridColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(20,20,18,0.08)';
-  const textColor = isDark ? '#6B6A62' : '#88877E';
-  const exitColor = isDark ? '#F3F3EE' : '#141412';
-  const feeColor  = isDark ? '#F87171' : '#B82E2B';
-  const presColor = isDark ? '#FBBF24' : '#A36B15';
-  const cursorColor = isDark ? 'rgba(255,255,255,0.35)' : 'rgba(20,20,18,0.25)';
-
-  // Background Grid Lines
-  for (let i = 0; i <= 4; i++) {
-    const y = 20 + ((height - 40) * i / 4);
-    const val = (maxY * (4 - i) / 4);
-
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line.setAttribute('x1', '24');
-    line.setAttribute('x2', String(width - 24));
-    line.setAttribute('y1', String(y));
-    line.setAttribute('y2', String(y));
-    line.setAttribute('stroke', gridColor);
-    line.setAttribute('stroke-dasharray', '4 4');
-    svg.appendChild(line);
-
-    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    label.setAttribute('x', '28');
-    label.setAttribute('y', String(y - 4));
-    label.setAttribute('font-family', 'JetBrains Mono, monospace');
-    label.setAttribute('font-size', '10');
-    label.setAttribute('fill', textColor);
-    label.textContent = `${(val * 100).toFixed(0)}%`;
-    svg.appendChild(label);
+  // Draw exit rate line
+  if (state.visibleSeries.exit) {
+    const exitD = rounds.map((r, i) => `${i === 0 ? 'M' : 'L'} ${getX(i)} ${getY(r.exitRate)}`).join(' ');
+    pathsHtml += `<path d="${exitD}" fill="none" stroke="#e05252" stroke-width="2.5" />`;
   }
 
-  // Draw Series Paths
-  const seriesDefs = [
-    { id: 'exit',     values: exit,     stroke: exitColor, width: 2.2, dash: '' },
-    { id: 'fee',      values: fee,      stroke: feeColor,  width: 1.8, dash: '' },
-    { id: 'pressure', values: pressure, stroke: presColor, width: 1.5, dash: '5 4' },
-  ];
+  // Draw fee rate line
+  if (state.visibleSeries.fee) {
+    const feeD = rounds.map((r, i) => `${i === 0 ? 'M' : 'L'} ${getX(i)} ${getY(r.feeAfter)}`).join(' ');
+    pathsHtml += `<path d="${feeD}" fill="none" stroke="#c5a059" stroke-width="2" stroke-dasharray="4 3" />`;
+  }
 
-  seriesDefs.forEach((s) => {
-    if (!state.visibleSeries[s.id]) return;
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    path.setAttribute('d', linePath(s.values, width, height, maxY));
-    path.setAttribute('fill', 'none');
-    path.setAttribute('stroke', s.stroke);
-    path.setAttribute('stroke-width', String(s.width));
-    if (s.dash) path.setAttribute('stroke-dasharray', s.dash);
-    path.setAttribute('vector-effect', 'non-scaling-stroke');
-    svg.appendChild(path);
+  // Draw pressure line
+  if (state.visibleSeries.pressure) {
+    const pressD = rounds.map((r, i) => `${i === 0 ? 'M' : 'L'} ${getX(i)} ${getY(r.pressureAfter)}`).join(' ');
+    pathsHtml += `<path d="${pressD}" fill="none" stroke="#4a90e2" stroke-width="1.5" stroke-dasharray="2 2" />`;
+  }
+
+  svg.innerHTML = pathsHtml;
+}
+
+// ==========================================================================
+// MODULE 02: SPEC LAB (3-PANE SPECIFICATION BROWSER)
+// ==========================================================================
+function initSpecLab(data) {
+  state.speclab = data;
+  renderSpecDomains();
+  renderSpecRules();
+  selectSpecRule(state.selectedRuleId);
+
+  // Search
+  $('#inputSearchRules')?.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase();
+    renderSpecRules(query);
   });
 
-  // Active round cursor
-  if (result.rounds.length > 1) {
-    const padX = 24;
-    const usableW = width - padX * 2;
-    const activeX = padX + (state.activeRoundIndex / (result.rounds.length - 1)) * usableW;
-    const cursorLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    cursorLine.setAttribute('x1', String(activeX));
-    cursorLine.setAttribute('x2', String(activeX));
-    cursorLine.setAttribute('y1', '16');
-    cursorLine.setAttribute('y2', String(height - 16));
-    cursorLine.setAttribute('stroke', cursorColor);
-    cursorLine.setAttribute('stroke-width', '1.5');
-    cursorLine.setAttribute('stroke-dasharray', '4 3');
-    svg.appendChild(cursorLine);
+  // Listen to 3D node clicks
+  window.addEventListener('reflex:domain-select', (e) => {
+    const domain = e.detail.domain;
+    setSpecDomain(domain);
+    const targetSection = document.getElementById('speclab');
+    targetSection?.scrollIntoView({ behavior: 'smooth' });
+  });
+}
+
+function renderSpecDomains() {
+  const container = $('#domainFilterList');
+  if (!container) return;
+
+  container.innerHTML = SPEC_DOMAINS.map((d) => `
+    <button class="domain-btn ${state.activeSpecDomain === d.id ? 'active' : ''}" data-domain="${d.id}">
+      <span>${d.label}</span>
+      <span class="domain-count">${d.count}</span>
+    </button>
+  `).join('');
+
+  container.querySelectorAll('.domain-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      const domain = e.currentTarget.dataset.domain;
+      setSpecDomain(domain);
+    });
+  });
+}
+
+function setSpecDomain(domain) {
+  state.activeSpecDomain = domain;
+  renderSpecDomains();
+  renderSpecRules();
+  if (state.sculpture) {
+    state.sculpture.focusDomain(domain === 'ALL' ? null : domain);
+  }
+}
+
+function renderSpecRules(query = '') {
+  const container = $('#rulesScrollList');
+  if (!container || !state.speclab) return;
+
+  let rules = state.speclab.rules;
+  if (state.activeSpecDomain !== 'ALL') {
+    rules = rules.filter((r) => r.domain === state.activeSpecDomain);
+  }
+  if (query) {
+    rules = rules.filter((r) => r.id.toLowerCase().includes(query) || r.title.toLowerCase().includes(query) || r.summary.toLowerCase().includes(query));
+  }
+
+  $('#ruleCountDisplay').textContent = rules.length;
+
+  container.innerHTML = rules.map((r) => `
+    <div class="rule-item-card ${r.id === state.selectedRuleId ? 'active' : ''}" data-rule-id="${r.id}">
+      <div class="rule-card-top">
+        <span class="rule-id">${r.id}</span>
+        <span class="rule-classification ${r.classification.toLowerCase()}">${r.classification}</span>
+      </div>
+      <div class="rule-card-title">${r.title}</div>
+      <div class="rule-card-summary">${r.summary}</div>
+    </div>
+  `).join('');
+
+  container.querySelectorAll('.rule-item-card').forEach((card) => {
+    card.addEventListener('click', (e) => {
+      const ruleId = e.currentTarget.dataset.ruleId;
+      selectSpecRule(ruleId);
+    });
+  });
+}
+
+function selectSpecRule(ruleId) {
+  state.selectedRuleId = ruleId;
+  renderSpecRules($('#inputSearchRules')?.value.toLowerCase() || '');
+
+  const pane = $('#specDetailPane');
+  if (!pane || !state.speclab) return;
+
+  const rule = state.speclab.rules.find((r) => r.id === ruleId) || state.speclab.rules[0];
+  pane.innerHTML = renderProvenanceChain(rule.id, state.speclab.rules, state.speclab.invariants);
+
+  // Update standalone provenance graph as well
+  const provViewer = $('#provenanceViewer');
+  if (provViewer) {
+    provViewer.innerHTML = renderProvenanceChain(rule.id, state.speclab.rules, state.speclab.invariants);
   }
 }
 
 // ==========================================================================
-// ROUND-BY-ROUND TRACE TABLE
+// MODULE 03: INVARIANT REGISTRY
 // ==========================================================================
-function updateTraceTable(result) {
-  const tbody = $('#traceTableBody');
+function initInvariants(data) {
+  renderInvariantsTable(data.invariants);
+
+  $('#invFilterPills')?.addEventListener('click', (e) => {
+    const pill = e.target.closest('.filter-pill');
+    if (!pill) return;
+    $$('.filter-pill').forEach((p) => p.classList.remove('active'));
+    pill.classList.add('active');
+    state.activeInvFilter = pill.dataset.filter;
+    renderInvariantsTable(data.invariants);
+  });
+}
+
+function renderInvariantsTable(invariants) {
+  const tbody = $('#invariantsTableBody');
   if (!tbody) return;
-  tbody.innerHTML = result.rounds.map((r, idx) => `
-    <tr data-round="${idx}">
-      <td>${r.round + 1}</td>
-      <td>${formatPct(r.exitRate, 2)}</td>
-      <td>${formatPct(r.pressureAfter, 2)}</td>
-      <td>${formatPct(r.feeAfter, 2)}</td>
-      <td>${Math.round(r.participantsRemaining).toLocaleString()}</td>
-      <td>${formatPct(r.burnShare, 3)}</td>
-      <td>${formatPct(r.redistributionShare, 3)}</td>
-      <td>${r.behavioralScore == null ? 'shock' : formatNum(r.behavioralScore, 3)}</td>
+
+  let filtered = invariants;
+  if (state.activeInvFilter !== 'ALL') {
+    filtered = filtered.filter((i) => i.domain === state.activeInvFilter);
+  }
+
+  tbody.innerHTML = filtered.map((inv) => `
+    <tr>
+      <td><code>${inv.id}</code></td>
+      <td><strong>${inv.domain}</strong></td>
+      <td><code>${inv.formalProperty}</code></td>
+      <td><a href="#speclab" class="rule-link" data-rule="${inv.sourceRule}"><code>${inv.sourceRule}</code></a></td>
+      <td><span class="inv-status-tag ${inv.classification.toLowerCase()}">${inv.classification}</span></td>
+      <td><span class="inv-status-tag ${inv.status.toLowerCase()}">${inv.status}</span></td>
+      <td>
+        <button class="btn-table-action btn-copy-forge" data-cmd="forge test --match-test invariant_${inv.id.replace(/-/g, '_')} -vvv">
+          Copy Test Cmd
+        </button>
+      </td>
     </tr>
   `).join('');
 
-  $$('#traceTableBody tr').forEach((tr) => {
-    tr.addEventListener('click', () => {
-      const rIdx = Number(tr.dataset.round);
-      setScrubberRound(rIdx);
+  tbody.querySelectorAll('.btn-copy-forge').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      const cmd = e.currentTarget.dataset.cmd;
+      navigator.clipboard.writeText(cmd);
+      showToast(`Copied: ${cmd}`);
+    });
+  });
+
+  tbody.querySelectorAll('.rule-link').forEach((link) => {
+    link.addEventListener('click', (e) => {
+      const ruleId = e.currentTarget.dataset.rule;
+      selectSpecRule(ruleId);
     });
   });
 }
 
 // ==========================================================================
-// SCRUBBER & PLAYBACK
+// MODULE 04: TRACE LAB
 // ==========================================================================
-function setScrubberRound(idx) {
-  if (!state.result) return;
-  const maxIdx = state.result.rounds.length - 1;
-  state.activeRoundIndex = Math.max(0, Math.min(maxIdx, idx));
-
-  $('#roundScrubber').value = state.activeRoundIndex + 1;
-  $('#scrubberLabel').textContent = `Round: ${state.activeRoundIndex + 1}/${state.result.rounds.length}`;
-
-  const currentRound = state.result.rounds[state.activeRoundIndex];
-  updateRoundMetrics(currentRound, state.result);
-  drawTrajectory(state.result);
-}
-
-function togglePlay() {
-  if (state.isPlaying) {
-    pauseSimulation();
-  } else {
-    playSimulation();
+function initTraceLab(traces) {
+  const container = $('#traceLabContainer');
+  if (container && traces.length) {
+    state.tracePlayer = new TraceLabPlayer(container, traces);
   }
 }
 
-function playSimulation() {
-  state.isPlaying = true;
-  $('#playIcon').style.display = 'none';
-  $('#pauseIcon').style.display = 'block';
+// ==========================================================================
+// COMMAND PALETTE (CTRL+K / CMD+K)
+// ==========================================================================
+function initCommandPalette() {
+  const modal = $('#cmdPaletteModal');
+  const input = $('#cmdInput');
+  const list = $('#cmdResultsList');
 
-  if (state.activeRoundIndex >= (state.result?.rounds.length || 1) - 1) {
-    setScrubberRound(0);
+  const commands = [
+    { label: 'Jump to Overview', category: 'Navigation', action: () => scrollTo('#overview') },
+    { label: 'Jump to Dynamics Simulation', category: 'Navigation', action: () => scrollTo('#dynamics') },
+    { label: 'Jump to SpecLab Specification', category: 'Navigation', action: () => scrollTo('#speclab') },
+    { label: 'Jump to Invariant Registry', category: 'Navigation', action: () => scrollTo('#invariants') },
+    { label: 'Jump to Trace Lab Replayer', category: 'Navigation', action: () => scrollTo('#tracelab') },
+    { label: 'Jump to Provenance Graph', category: 'Navigation', action: () => scrollTo('#provenance') },
+    { label: 'Jump to Assumptions Matrix', category: 'Navigation', action: () => scrollTo('#assumptions') },
+    { label: 'Toggle Light / Dark Theme', category: 'Theme', action: () => setTheme(state.theme === 'dark' ? 'light' : 'dark') },
+    { label: 'Copy Full Forge Invariant Test Command', category: 'Developer', action: () => {
+      navigator.clipboard.writeText('forge test --gas-report -vvv');
+      showToast('Copied: forge test --gas-report -vvv');
+    }},
+    { label: 'Open GitHub Repository (Built by Asad Lee)', category: 'External', action: () => {
+      window.open('https://github.com/Asadlee24/reflex-standard-reserve', '_blank');
+    }},
+  ];
+
+  function openPalette() {
+    modal?.classList.add('open');
+    input?.focus();
+    renderCmds(commands);
   }
 
-  state.playTimer = setInterval(() => {
-    if (!state.result) return;
-    if (state.activeRoundIndex < state.result.rounds.length - 1) {
-      setScrubberRound(state.activeRoundIndex + 1);
-    } else {
-      pauseSimulation();
+  function closePalette() {
+    modal?.classList.remove('open');
+    if (input) input.value = '';
+  }
+
+  function scrollTo(hash) {
+    document.querySelector(hash)?.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function renderCmds(items) {
+    if (!list) return;
+    list.innerHTML = items.map((c, idx) => `
+      <div class="cmd-item" data-idx="${idx}">
+        <span>${c.label}</span>
+        <span class="cmd-category">${c.category}</span>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('.cmd-item').forEach((el) => {
+      el.addEventListener('click', (e) => {
+        const idx = parseInt(e.currentTarget.dataset.idx, 10);
+        commands[idx].action();
+        closePalette();
+      });
+    });
+  }
+
+  $('#btnCmdPalette')?.addEventListener('click', openPalette);
+
+  window.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      modal?.classList.contains('open') ? closePalette() : openPalette();
     }
-  }, 320);
-}
-
-function pauseSimulation() {
-  state.isPlaying = false;
-  clearInterval(state.playTimer);
-  $('#playIcon').style.display = 'block';
-  $('#pauseIcon').style.display = 'none';
-}
-
-// ==========================================================================
-// STABILITY MAP (651 Full Simulations)
-// ==========================================================================
-function heatColor(classification) {
-  const isDark = state.theme === 'dark';
-  if (classification === 'stable') return isDark ? '#4ADE80' : '#1F7A42';
-  if (classification === 'cascade') return isDark ? '#F87171' : '#B82E2B';
-  return isDark ? '#FBBF24' : '#A36B15';
-}
-
-function drawHeatmap() {
-  const canvas = $('#stabilityHeatmapCanvas');
-  if (!canvas || !state.sweep) return;
-
-  const rect = canvas.getBoundingClientRect();
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  canvas.width = Math.floor(rect.width * dpr);
-  canvas.height = Math.floor(rect.height * dpr);
-
-  const ctx = canvas.getContext('2d');
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const W = rect.width;
-  const H = rect.height;
-
-  const sweep = state.sweep;
-  const cols = sweep.xValues.length;
-  const rows = sweep.yValues.length;
-  const cw = W / cols;
-  const ch = H / rows;
-  ctx.clearRect(0, 0, W, H);
-
-  for (const cell of sweep.cells) {
-    ctx.fillStyle = heatColor(cell.classification);
-    ctx.globalAlpha = 0.88;
-    const x = cell.xi * cw;
-    const y = H - (cell.yi + 1) * ch;
-    ctx.fillRect(x, y, Math.ceil(cw + 0.3), Math.ceil(ch + 0.3));
-  }
-  ctx.globalAlpha = 1;
-}
-
-function buildSweep() {
-  state.sweep = stabilitySweep(state.config, {
-    xMin: 0, xMax: 30, xSteps: 31,
-    yMin: 0, yMax: 20, ySteps: 21,
-  });
-  // Defer canvas drawing to ensure layout is complete
-  requestAnimationFrame(() => requestAnimationFrame(drawHeatmap));
-}
-
-function heatmapHover(event) {
-  if (!state.sweep) return;
-  const canvas = $('#stabilityHeatmapCanvas');
-  const rect = canvas.getBoundingClientRect();
-  const xNorm = (event.clientX - rect.left) / rect.width;
-  const yNorm = 1 - (event.clientY - rect.top) / rect.height;
-
-  const xi = Math.max(0, Math.min(state.sweep.xValues.length - 1, Math.floor(xNorm * state.sweep.xValues.length)));
-  const yi = Math.max(0, Math.min(state.sweep.yValues.length - 1, Math.floor(yNorm * state.sweep.yValues.length)));
-  const cell = state.sweep.cells.find((c) => c.xi === xi && c.yi === yi);
-  if (!cell) return;
-
-  const tip = $('#heatmapTooltip');
-  tip.innerHTML = `
-    <div class="heatmap-tooltip-title" style="color:${heatColor(cell.classification)}">
-      ${cell.classification.toUpperCase()}
-    </div>
-    <div>Contagion: <b>${cell.contagionStrength.toFixed(1)}</b> · Deterrence: <b>${cell.feeDeterrence.toFixed(1)}</b></div>
-    <div style="font-size:10px; color:var(--ink-muted); margin-top:2px;">
-      Cumulative Exits: ${(cell.cumulativeExitedShare * 100).toFixed(1)}% · Click to load
-    </div>
-  `;
-  tip.style.opacity = '1';
-}
-
-function heatmapClick(event) {
-  if (!state.sweep) return;
-  const canvas = $('#stabilityHeatmapCanvas');
-  const rect = canvas.getBoundingClientRect();
-  const xNorm = (event.clientX - rect.left) / rect.width;
-  const yNorm = 1 - (event.clientY - rect.top) / rect.height;
-
-  const xi = Math.max(0, Math.min(state.sweep.xValues.length - 1, Math.floor(xNorm * state.sweep.xValues.length)));
-  const yi = Math.max(0, Math.min(state.sweep.yValues.length - 1, Math.floor(yNorm * state.sweep.yValues.length)));
-  const cell = state.sweep.cells.find((c) => c.xi === xi && c.yi === yi);
-  if (!cell) return;
-
-  // Load selected parameters directly into the simulator
-  $('#inputContagion').value = cell.contagionStrength;
-  $('#inputDeterrence').value = cell.feeDeterrence;
-  syncConfigFromInputs();
-  syncControlLabels();
-  runSimulation();
-  showToast(`Loaded scenario: Contagion ${cell.contagionStrength.toFixed(1)}, Deterrence ${cell.feeDeterrence.toFixed(1)}`);
-}
-
-// ==========================================================================
-// PRESETS
-// ==========================================================================
-function setPreset(name) {
-  const presets = {
-    baseline: { shock: 10, contagion: 18, deterrence: 8, floor: 2, ceiling: 40, saturation: 50 },
-    contagion: { shock: 14, contagion: 26, deterrence: 4, floor: 2, ceiling: 40, saturation: 50 },
-    deterrence: { shock: 14, contagion: 14, deterrence: 15, floor: 2, ceiling: 40, saturation: 50 },
-  };
-  const p = presets[name];
-  if (!p) return;
-
-  $('#inputInitialShock').value = p.shock;
-  $('#inputContagion').value = p.contagion;
-  $('#inputDeterrence').value = p.deterrence;
-  $('#inputFeeFloor').value = p.floor;
-  $('#inputFeeCeiling').value = p.ceiling;
-  $('#inputSaturation').value = p.saturation;
-
-  $$('.preset-btn').forEach((b) => {
-    b.classList.toggle('active', b.dataset.preset === name);
+    if (e.key === 'Escape' && modal?.classList.contains('open')) {
+      closePalette();
+    }
   });
 
-  syncConfigFromInputs();
-  syncControlLabels();
-  runSimulation();
-}
+  modal?.addEventListener('click', (e) => {
+    if (e.target === modal) closePalette();
+  });
 
-// ==========================================================================
-// MAIN RUN SIMULATION
-// ==========================================================================
-function runSimulation() {
-  pauseSimulation();
-  syncConfigFromInputs();
-
-  state.result = simulate(state.config);
-  state.activeRoundIndex = state.result.rounds.length - 1;
-
-  // Update scrubber bounds
-  const scrubber = $('#roundScrubber');
-  scrubber.max = state.result.rounds.length;
-  scrubber.value = state.result.rounds.length;
-  $('#scrubberLabel').textContent = `Round: ${state.result.rounds.length}/${state.result.rounds.length}`;
-
-  // Update DOM components
-  updateClassificationBanner(state.result);
-  updateTraceTable(state.result);
-  drawTrajectory(state.result);
-  updateRoundMetrics(state.result.rounds.at(-1), state.result);
-  buildSweep();
+  input?.addEventListener('input', (e) => {
+    const q = e.target.value.toLowerCase();
+    const filtered = commands.filter((c) => c.label.toLowerCase().includes(q) || c.category.toLowerCase().includes(q));
+    renderCmds(filtered);
+  });
 }
 
 // ==========================================================================
 // INITIALIZATION
 // ==========================================================================
-function init() {
-  // 1. Theme
+async function initApp() {
   initTheme();
 
-  // 2. 3D Sculpture
-  const sculptureContainer = $('#sculptureCanvasContainer');
-  if (sculptureContainer) {
-    state.sculpture = new ReflexSculpture(sculptureContainer, { theme: state.theme });
+  // 3D REFLEX Core Sculpture
+  const canvasContainer = $('#sculptureCanvasContainer');
+  if (canvasContainer) {
+    state.sculpture = new ReflexSculpture(canvasContainer, { theme: state.theme });
   }
 
-  // 3. URL Params & Initial Config
-  readUrlParams();
-  syncInputsFromConfig();
+  // Load SpecLab Data
+  const specData = await loadSpecLabData();
 
-  // 4. Sliders Event Listeners
-  $$('.range-slider').forEach((el) => {
-    if (el.id === 'roundScrubber') return;
-    el.addEventListener('input', () => {
-      syncConfigFromInputs();
-      syncControlLabels();
-      runSimulation();
-    });
-  });
+  // Initialize Modules
+  initDynamics();
+  initSpecLab(specData);
+  initInvariants(specData);
+  initTraceLab(specData.traces);
+  initCommandPalette();
 
-  // 5. Scrubber Input Event
-  $('#roundScrubber')?.addEventListener('input', (e) => {
-    pauseSimulation();
-    setScrubberRound(Number(e.target.value) - 1);
-  });
-
-  // 6. Play / Pause Button
-  $('#btnPlayPause')?.addEventListener('click', togglePlay);
-
-  // 7. Preset Buttons
-  $$('.preset-btn').forEach((btn) => {
-    btn.addEventListener('click', () => setPreset(btn.dataset.preset));
-  });
-
-  // 8. Reset & Run Buttons
-  $('#btnResetControls')?.addEventListener('click', () => {
-    state.config = { ...MODEL_DEFAULTS };
-    syncInputsFromConfig();
-    runSimulation();
-    showToast('Reset parameters to baseline');
-  });
-
-  $('#btnRunModel')?.addEventListener('click', () => {
-    runSimulation();
-    showToast('Simulated scenario successfully');
-  });
-
-  // 9. Series Toggle Chips
-  $$('.toggle-chip').forEach((chip) => {
-    chip.addEventListener('click', () => {
-      const s = chip.dataset.series;
-      state.visibleSeries[s] = !state.visibleSeries[s];
-      chip.classList.toggle('active', state.visibleSeries[s]);
-      if (state.result) drawTrajectory(state.result);
-    });
-  });
-
-  // 10. Export CSV & JSON
-  $('#btnExportCsv')?.addEventListener('click', () => {
-    if (!state.result) return;
-    downloadText('reflex-simulation.csv', resultToCsv(state.result), 'text/csv');
-    showToast('Downloaded simulation CSV');
-  });
-
-  $('#btnExportJson')?.addEventListener('click', () => {
-    if (!state.result) return;
-    downloadText('reflex-simulation.json', JSON.stringify(state.result, null, 2), 'application/json');
-    showToast('Downloaded simulation JSON');
-  });
-
-  // 11. Share Scenario
-  $('#btnShareScenarioTop')?.addEventListener('click', shareScenario);
-
-  // 12. Heatmap Interactivity
-  const heatmapEl = $('#stabilityHeatmapCanvas');
-  if (heatmapEl) {
-    heatmapEl.addEventListener('mousemove', heatmapHover);
-    heatmapEl.addEventListener('mouseleave', () => {
-      const tip = $('#heatmapTooltip');
-      if (tip) tip.style.opacity = '0';
-    });
-    heatmapEl.addEventListener('click', heatmapClick);
-  }
-
-  // 13. Window Resize
-  window.addEventListener('resize', () => {
-    if (state.sweep) drawHeatmap();
-    if (state.result) drawTrajectory(state.result);
-  }, { passive: true });
-
-  // 14. Initial Run
-  runSimulation();
+  console.log('REFLEX — Standard Reserve Research Laboratory loaded.');
 }
 
-// Start application — use 'load' so layout & fonts are complete before canvas draws
-if (document.readyState === 'complete') {
-  init();
-} else {
-  window.addEventListener('load', init, { once: true });
-}
+document.addEventListener('DOMContentLoaded', initApp);

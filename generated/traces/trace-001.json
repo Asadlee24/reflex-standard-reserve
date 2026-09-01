@@ -1,0 +1,134 @@
+{
+  "traceId": "TRACE-001",
+  "name": "Nominal Charter Lifecycle & Branch Resolution Sequence",
+  "timestamp": "2026-09-01T14:30:00Z",
+  "seed": "0x5354414e444152445f3031",
+  "verdict": "PASS",
+  "failureClassification": null,
+  "stepsCount": 6,
+  "steps": [
+    {
+      "stepIndex": 0,
+      "action": "genesisInitialize(100M, 10M)",
+      "caller": "0xDeployer",
+      "preState": {
+        "circulating": "0",
+        "unminted": "0",
+        "remainingBudget": "100M",
+        "activeBranches": 0
+      },
+      "postState": {
+        "circulating": "10M",
+        "unminted": "0",
+        "remainingBudget": "90M",
+        "activeBranches": 0
+      },
+      "invariantsChecked": [
+        "INV-SUPPLY-001",
+        "INV-ACCOUNTING-001"
+      ],
+      "status": "PASS"
+    },
+    {
+      "stepIndex": 1,
+      "action": "createCharter(owner: 0xAlice, maxBranches: 3)",
+      "caller": "0xDeployer",
+      "preState": {
+        "activeCharters": 0,
+        "activeBranches": 0
+      },
+      "postState": {
+        "activeCharters": 1,
+        "activeBranches": 0,
+        "charterStatus": "Active"
+      },
+      "invariantsChecked": [
+        "INV-CHARTER-001"
+      ],
+      "status": "PASS"
+    },
+    {
+      "stepIndex": 2,
+      "action": "openBranch(charterId: 1)",
+      "caller": "0xAlice",
+      "preState": {
+        "activeBranches": 0,
+        "charterBranches": 0
+      },
+      "postState": {
+        "activeBranches": 1,
+        "charterBranches": 1,
+        "branchStatus": "Active"
+      },
+      "invariantsChecked": [
+        "INV-BRANCH-001"
+      ],
+      "status": "PASS"
+    },
+    {
+      "stepIndex": 3,
+      "action": "accrueIssuance(branchId: 1, amount: 500,000)",
+      "caller": "0xPolicyEngine",
+      "preState": {
+        "unminted": "0",
+        "remainingBudget": "90M",
+        "branchAccrual": "0"
+      },
+      "postState": {
+        "unminted": "500K",
+        "remainingBudget": "89.5M",
+        "branchAccrual": "500K"
+      },
+      "invariantsChecked": [
+        "INV-ISSUANCE-001",
+        "INV-ACCOUNTING-001"
+      ],
+      "status": "PASS"
+    },
+    {
+      "stepIndex": 4,
+      "action": "resolveBranch(branchId: 1)",
+      "caller": "0xAlice",
+      "preState": {
+        "activeBranches": 1,
+        "unminted": "500K",
+        "circulating": "10M"
+      },
+      "postState": {
+        "activeBranches": 0,
+        "unminted": "0",
+        "circulating": "10.5M",
+        "charterStatus": "Dormant"
+      },
+      "invariantsChecked": [
+        "INV-BRANCH-002",
+        "INV-BRANCH-003",
+        "INV-CHARTER-002",
+        "INV-ACCOUNTING-001"
+      ],
+      "status": "PASS"
+    },
+    {
+      "stepIndex": 5,
+      "action": "verifyFinalConservation()",
+      "caller": "0xSpecHarness",
+      "preState": {
+        "circulating": "10.5M",
+        "unminted": "0",
+        "remainingBudget": "89.5M",
+        "burned": "0"
+      },
+      "postState": {
+        "circulating": "10.5M",
+        "unminted": "0",
+        "remainingBudget": "89.5M",
+        "burned": "0"
+      },
+      "invariantsChecked": [
+        "INV-SUPPLY-001",
+        "INV-ACCOUNTING-001"
+      ],
+      "status": "PASS"
+    }
+  ]
+}

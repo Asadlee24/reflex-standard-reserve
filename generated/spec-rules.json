@@ -1,0 +1,254 @@
+[
+  {
+    "id": "SR-SUPPLY-001",
+    "domain": "SUPPLY",
+    "title": "Hard Supply Cap",
+    "summary": "Total $STANDARD in existence plus unminted issuance cannot exceed the protocol hard cap.",
+    "classification": "CONFIRMED",
+    "source": "Official Whitepaper v1 §1.1",
+    "model": "StandardSpec.sol",
+    "affectedInvariants": [
+      "INV-SUPPLY-001",
+      "INV-ACCOUNTING-001"
+    ],
+    "status": "MODELED"
+  },
+  {
+    "id": "SR-SUPPLY-002",
+    "domain": "SUPPLY",
+    "title": "Genesis Allocation",
+    "summary": "Fixed initial supply minted at protocol genesis for initial liquidity and founding charters.",
+    "classification": "CONFIRMED",
+    "source": "Official Whitepaper v1 §1.2",
+    "model": "StandardSpec.sol",
+    "affectedInvariants": [
+      "INV-ACCOUNTING-001"
+    ],
+    "status": "MODELED"
+  },
+  {
+    "id": "SR-SUPPLY-003",
+    "domain": "SUPPLY",
+    "title": "Issuance Budget Constraints",
+    "summary": "Future token creation occurs strictly through Banker accrual and policy-directed mechanisms.",
+    "classification": "CONFIRMED",
+    "source": "Official Whitepaper v1 §2.3",
+    "model": "StandardSpec.sol",
+    "affectedInvariants": [
+      "INV-SUPPLY-002"
+    ],
+    "status": "MODELED"
+  },
+  {
+    "id": "SR-SUPPLY-004",
+    "domain": "SUPPLY",
+    "title": "Token Burn Permanence",
+    "summary": "Tokens burned via Resolution Fees or Expansion Licences reduce total supply permanently.",
+    "classification": "DERIVED",
+    "source": "Official Whitepaper v1 §4.1",
+    "model": "StandardSpec.sol",
+    "affectedInvariants": [
+      "INV-SUPPLY-003",
+      "INV-ACCOUNTING-001"
+    ],
+    "status": "MODELED"
+  },
+  {
+    "id": "SR-POLICY-001",
+    "domain": "POLICY",
+    "title": "Dual Monetary Regimes",
+    "summary": "Protocol operates in either Expansion Regime (net positive liquidity demand) or Contraction Regime.",
+    "classification": "CONFIRMED",
+    "source": "Official Whitepaper v1 §3.1",
+    "model": "PolicySpec.sol",
+    "affectedInvariants": [
+      "INV-POLICY-001"
+    ],
+    "status": "MODELED"
+  },
+  {
+    "id": "SR-POLICY-002",
+    "domain": "POLICY",
+    "title": "Policy Multiplier Bounds",
+    "summary": "Expansion rate and contraction multipliers are bounded within strict mathematical envelopes.",
+    "classification": "DERIVED",
+    "source": "Whitepaper v1 & Founder Disclosures",
+    "model": "PolicySpec.sol",
+    "affectedInvariants": [
+      "INV-POLICY-001"
+    ],
+    "status": "MODELED"
+  },
+  {
+    "id": "SR-CHARTER-001",
+    "domain": "CHARTERS",
+    "title": "Founding Charters",
+    "summary": "Genesis Bankers receive Founding Charters authorizing initial Branch deployment and operational capacity.",
+    "classification": "CONFIRMED",
+    "source": "Official Whitepaper v1 §2.1",
+    "model": "CharterSpec.sol",
+    "affectedInvariants": [
+      "INV-CHARTER-001"
+    ],
+    "status": "MODELED"
+  },
+  {
+    "id": "SR-CHARTER-002",
+    "domain": "CHARTERS",
+    "title": "Charter Lifecycle Transitions",
+    "summary": "Charters transition from Active -> Dormant -> Burned upon final branch exit or destruction.",
+    "classification": "DERIVED",
+    "source": "Official Whitepaper v1 §2.4",
+    "model": "CharterSpec.sol",
+    "affectedInvariants": [
+      "INV-CHARTER-001",
+      "INV-CHARTER-002"
+    ],
+    "status": "MODELED"
+  },
+  {
+    "id": "SR-BRANCH-001",
+    "domain": "BRANCHES",
+    "title": "Branch Activation",
+    "summary": "Charters deploy Branches to manage operational capital and accrue protocol issuance.",
+    "classification": "CONFIRMED",
+    "source": "Official Whitepaper v1 §2.5",
+    "model": "BranchSpec.sol",
+    "affectedInvariants": [
+      "INV-BRANCH-001"
+    ],
+    "status": "MODELED"
+  },
+  {
+    "id": "SR-BRANCH-002",
+    "domain": "BRANCHES",
+    "title": "Maximum Branch Limit",
+    "summary": "An active Charter cannot exceed a protocol-enforced maximum number of active Branches.",
+    "classification": "CONFIRMED",
+    "source": "Official Whitepaper v1 §2.6",
+    "model": "BranchSpec.sol",
+    "affectedInvariants": [
+      "INV-BRANCH-001"
+    ],
+    "status": "MODELED"
+  },
+  {
+    "id": "SR-BRANCH-003",
+    "domain": "BRANCHES",
+    "title": "Branch Resolution",
+    "summary": "Bankers can voluntarily retire/resolve a Branch to realize accrued capital and exit.",
+    "classification": "CONFIRMED",
+    "source": "Official Whitepaper v1 §4.2",
+    "model": "BranchSpec.sol",
+    "affectedInvariants": [
+      "INV-BRANCH-002",
+      "INV-BRANCH-003"
+    ],
+    "status": "MODELED"
+  },
+  {
+    "id": "SR-BRANCH-004",
+    "domain": "BRANCHES",
+    "title": "Resolution Singularity",
+    "summary": "A Branch cannot be resolved more than once (terminal state).",
+    "classification": "DERIVED",
+    "source": "State Machine Invariant",
+    "model": "BranchSpec.sol",
+    "affectedInvariants": [
+      "INV-BRANCH-003"
+    ],
+    "status": "MODELED"
+  },
+  {
+    "id": "SR-ISSUANCE-001",
+    "domain": "ISSUANCE",
+    "title": "Unminted Accrual Accounting",
+    "summary": "Issuance accrues internally as unminted ledger credits until explicitly realized or resolved.",
+    "classification": "CONFIRMED",
+    "source": "Official Whitepaper v1 §2.3",
+    "model": "StandardSpec.sol",
+    "affectedInvariants": [
+      "INV-ISSUANCE-001"
+    ],
+    "status": "MODELED"
+  },
+  {
+    "id": "SR-ISSUANCE-002",
+    "domain": "ISSUANCE",
+    "title": "Withdrawal Realization Bounds",
+    "summary": "A Banker cannot withdraw more $STANDARD than their verified accrued balance.",
+    "classification": "DERIVED",
+    "source": "Accounting Invariants",
+    "model": "BranchSpec.sol",
+    "affectedInvariants": [
+      "INV-ISSUANCE-002"
+    ],
+    "status": "MODELED"
+  },
+  {
+    "id": "SR-RESOLUTION-001",
+    "domain": "RESOLUTION",
+    "title": "Trailing Exit Pressure",
+    "summary": "Exit pressure is calculated as trailing withdrawals over total held capital.",
+    "classification": "CONFIRMED",
+    "source": "Official Whitepaper v1 §4.4",
+    "model": "ResolutionSpec.sol",
+    "affectedInvariants": [
+      "INV-RESOLUTION-001"
+    ],
+    "status": "MODELED"
+  },
+  {
+    "id": "SR-RESOLUTION-002",
+    "domain": "RESOLUTION",
+    "title": "Quadratic Resolution Fee Curve",
+    "summary": "Exit fee scales quadratically with exit pressure between a floor and ceiling.",
+    "classification": "CONFIRMED",
+    "source": "Official Whitepaper v1 §4.5",
+    "model": "ResolutionSpec.sol",
+    "affectedInvariants": [
+      "INV-RESOLUTION-001"
+    ],
+    "status": "MODELED"
+  },
+  {
+    "id": "SR-RESOLUTION-003",
+    "domain": "RESOLUTION",
+    "title": "Resolution Fee 50/50 Burn/Redistribution",
+    "summary": "50% of gross resolution fee is burned; 50% is redistributed to remaining active Bankers.",
+    "classification": "CONFIRMED",
+    "source": "Official Whitepaper v1 §4.6",
+    "model": "ResolutionSpec.sol",
+    "affectedInvariants": [
+      "INV-RESOLUTION-002",
+      "INV-RESOLUTION-003"
+    ],
+    "status": "MODELED"
+  },
+  {
+    "id": "SR-AUCTION-001",
+    "domain": "AUCTIONS",
+    "title": "Expansion Licence Auctions",
+    "summary": "New Branch expansion licences are sold via competitive protocol auctions.",
+    "classification": "CONFIRMED",
+    "source": "Official Whitepaper v1 §5.1",
+    "model": "AuctionSpec.sol",
+    "affectedInvariants": [
+      "INV-AUCTION-001"
+    ],
+    "status": "MODELED"
+  },
+  {
+    "id": "SR-VAULT-001",
+    "domain": "VAULTS",
+    "title": "Expansion & Contraction Reserve Vaults",
+    "summary": "Dedicated reserve vaults hold protocol liquidity and hard reserves.",
+    "classification": "CONFIRMED",
+    "source": "Official Whitepaper v1 §6.1",
+    "model": "VaultSpec.sol",
+    "affectedInvariants": [
+      "INV-ACCOUNTING-001"
+    ],
+    "status": "MODELED"
+  }
+]
