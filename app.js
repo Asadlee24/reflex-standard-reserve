@@ -4,6 +4,8 @@ import { ReflexSculpture } from './lib/sculpture3d.js';
 import { loadSpecLabData, SPEC_DOMAINS } from './lib/speclab-data.js';
 import { renderProvenanceChain } from './lib/provenance.js';
 import { TraceLabPlayer } from './lib/tracelab.js';
+import { LiveSpecEngine } from './lib/spec-engine.js';
+import { generateResearchReport } from './lib/report.js';
 
 // DOM selector helpers
 const $ = (sel) => document.querySelector(sel);
@@ -22,6 +24,7 @@ const state = {
   selectedRuleId: 'SR-SUPPLY-001',
   activeInvFilter: 'ALL',
   tracePlayer: null,
+  sandbox: new LiveSpecEngine(100_000_000, 10_000_000),
 };
 
 // Formatters
@@ -72,6 +75,35 @@ function showToast(message) {
 }
 
 // ==========================================================================
+// URL PARAMETER HYDRATION & SHARING
+// ==========================================================================
+function hydrateFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('shock')) state.config.initialShock = parseFloat(params.get('shock')) / 100;
+  if (params.has('contagion')) state.config.contagionStrength = parseFloat(params.get('contagion'));
+  if (params.has('deterrence')) state.config.feeDeterrence = parseFloat(params.get('deterrence'));
+  if (params.has('floor')) state.config.feeFloor = parseFloat(params.get('floor')) / 100;
+  if (params.has('ceiling')) state.config.feeCeiling = parseFloat(params.get('ceiling')) / 100;
+  if (params.has('saturation')) state.config.feeSaturation = parseFloat(params.get('saturation')) / 100;
+  if (params.has('horizon')) state.config.horizon = parseInt(params.get('horizon'), 10);
+  syncInputs();
+}
+
+function generateShareUrl() {
+  const c = state.config;
+  const params = new URLSearchParams({
+    shock: Math.round(c.initialShock * 100),
+    contagion: c.contagionStrength,
+    deterrence: c.feeDeterrence,
+    floor: Math.round(c.feeFloor * 100),
+    ceiling: Math.round(c.feeCeiling * 100),
+    saturation: Math.round(c.feeSaturation * 100),
+    horizon: c.horizon,
+  });
+  return `${window.location.origin}${window.location.pathname}?${params.toString()}#dynamics`;
+}
+
+// ==========================================================================
 // MODULE 01: DYNAMICS (EXIT FEEDBACK SIMULATOR)
 // ==========================================================================
 function initDynamics() {
@@ -103,6 +135,24 @@ function initDynamics() {
     runSimulation();
   });
 
+  // Share scenario link
+  $('#btnShareScenario')?.addEventListener('click', () => {
+    const url = generateShareUrl();
+    navigator.clipboard.writeText(url);
+    showToast('Shareable scenario link copied!');
+  });
+
+  // Academic report generator
+  $('#btnAcademicReport')?.addEventListener('click', () => {
+    if (!state.result) runSimulation();
+    const htmlReport = generateResearchReport({ result: state.result });
+    const win = window.open('', '_blank');
+    if (win) {
+      win.document.write(htmlReport);
+      win.document.close();
+    }
+  });
+
   // Chart series toggles
   $('#toggleSeriesExit')?.addEventListener('change', (e) => {
     state.visibleSeries.exit = e.target.checked;
@@ -132,7 +182,7 @@ function initDynamics() {
     showToast('Exported dynamics to JSON');
   });
 
-  // Initial Run
+  hydrateFromUrl();
   runSimulation();
 }
 
@@ -357,6 +407,135 @@ function selectSpecRule(ruleId) {
 }
 
 // ==========================================================================
+// MODULE: INTERACTIVE SPEC SANDBOX
+// ==========================================================================
+function initSandbox() {
+  updateSandboxUI();
+
+  $('#btnSandboxReset')?.addEventListener('click', () => {
+    state.sandbox.reset();
+    updateSandboxUI();
+    showToast('Sandbox reset to Genesis state');
+  });
+
+  $('#actCreateCharter')?.addEventListener('click', () => {
+    try {
+      state.sandbox.createCharter('0xBanker', 3);
+      updateSandboxUI();
+      showToast('Charter created (Max: 3)');
+    } catch (e) {
+      showToast(e.message);
+    }
+  });
+
+  $('#actOpenBranch')?.addEventListener('click', () => {
+    try {
+      const activeCharters = state.sandbox.charters.filter((c) => c.status === 'Active');
+      if (!activeCharters.length) {
+        state.sandbox.createCharter('0xBanker', 3);
+      }
+      const charter = state.sandbox.charters.find((c) => c.status === 'Active' && c.activeBranches < c.maxBranches);
+      if (!charter) {
+        throw new Error('All active charters at capacity. Create a new charter first.');
+      }
+      state.sandbox.openBranch(charter.id);
+      updateSandboxUI();
+      showToast(`Branch opened under Charter #${charter.id}`);
+    } catch (e) {
+      showToast(e.message);
+      updateSandboxUI();
+    }
+  });
+
+  $('#actAccrue')?.addEventListener('click', () => {
+    try {
+      const activeBranches = state.sandbox.branches.filter((b) => b.status === 'Active');
+      if (!activeBranches.length) {
+        throw new Error('No active branch found. Open a branch first.');
+      }
+      state.sandbox.accrueIssuance(activeBranches[0].id, 250_000);
+      updateSandboxUI();
+      showToast('Accrued +250,000 $STANDARD');
+    } catch (e) {
+      showToast(e.message);
+      updateSandboxUI();
+    }
+  });
+
+  $('#actResolve')?.addEventListener('click', () => {
+    try {
+      const activeBranches = state.sandbox.branches.filter((b) => b.status === 'Active');
+      if (!activeBranches.length) {
+        throw new Error('No active branch to resolve.');
+      }
+      const realized = state.sandbox.resolveBranch(activeBranches[0].id);
+      updateSandboxUI();
+      showToast(`Branch resolved! Realized ${realized.toLocaleString()} $STANDARD`);
+    } catch (e) {
+      showToast(e.message);
+      updateSandboxUI();
+    }
+  });
+
+  $('#actBurn')?.addEventListener('click', () => {
+    try {
+      state.sandbox.burnTokens(100_000);
+      updateSandboxUI();
+      showToast('Burned 100,000 $STANDARD');
+    } catch (e) {
+      showToast(e.message);
+      updateSandboxUI();
+    }
+  });
+
+  $('#actAdvanceEpoch')?.addEventListener('click', () => {
+    state.sandbox.advanceEpoch(500);
+    updateSandboxUI();
+    showToast(`Advanced to Epoch ${state.sandbox.currentEpoch}`);
+  });
+}
+
+function updateSandboxUI() {
+  const snap = state.sandbox.getStateSnapshot();
+
+  $('#sbCirculating').textContent = snap.circulatingSupply.toLocaleString();
+  $('#sbAccruals').textContent = snap.totalUnmintedAccrual.toLocaleString();
+  $('#sbBudget').textContent = snap.remainingIssuanceBudget.toLocaleString();
+  $('#sbBurned').textContent = snap.totalBurned.toLocaleString();
+  $('#sbCharters').textContent = snap.activeChartersCount;
+  $('#sbBranches').textContent = snap.activeBranchesCount;
+
+  // Invariant badges
+  updateInvBadge('#pillInvSupply', 'INV-SUPPLY-001', snap.invariants['INV-SUPPLY-001']);
+  updateInvBadge('#pillInvAccounting', 'INV-ACCOUNTING-001', snap.invariants['INV-ACCOUNTING-001']);
+  updateInvBadge('#pillInvBranch', 'INV-BRANCH-001', snap.invariants['INV-BRANCH-001']);
+  updateInvBadge('#pillInvBudget', 'INV-SUPPLY-002', snap.invariants['INV-SUPPLY-002']);
+
+  // History stream
+  const histEl = $('#sbActionHistory');
+  if (histEl) {
+    histEl.innerHTML = snap.history.map((h) => `
+      <div class="hist-item ${h.result.startsWith('REVERT') ? 'revert' : 'success'}">
+        <div>
+          <span><strong>${h.action}</strong></span>
+          <span style="color: var(--ink-muted); margin-left: 6px;">by ${h.caller}</span>
+        </div>
+        <div>
+          <span class="hist-time">${h.timestamp}</span>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+function updateInvBadge(sel, name, status) {
+  const el = $(sel);
+  if (!el) return;
+  el.className = `sb-inv-pill ${status === 'PASS' ? 'pass' : 'fail'}`;
+  el.innerHTML = `${name}: <strong>${status}</strong>`;
+}
+
+// ==========================================================================
 // MODULE 03: INVARIANT REGISTRY
 // ==========================================================================
 function initInvariants(data) {
@@ -435,10 +614,13 @@ function initCommandPalette() {
     { label: 'Jump to Overview', category: 'Navigation', action: () => scrollTo('#overview') },
     { label: 'Jump to Dynamics Simulation', category: 'Navigation', action: () => scrollTo('#dynamics') },
     { label: 'Jump to SpecLab Specification', category: 'Navigation', action: () => scrollTo('#speclab') },
+    { label: 'Jump to Spec Sandbox', category: 'Interactive', action: () => scrollTo('#sandbox') },
     { label: 'Jump to Invariant Registry', category: 'Navigation', action: () => scrollTo('#invariants') },
     { label: 'Jump to Trace Lab Replayer', category: 'Navigation', action: () => scrollTo('#tracelab') },
     { label: 'Jump to Provenance Graph', category: 'Navigation', action: () => scrollTo('#provenance') },
     { label: 'Jump to Assumptions Matrix', category: 'Navigation', action: () => scrollTo('#assumptions') },
+    { label: 'Generate Academic PDF Research Report', category: 'Report', action: () => $('#btnAcademicReport')?.click() },
+    { label: 'Copy Shareable Scenario URL', category: 'Share', action: () => $('#btnShareScenario')?.click() },
     { label: 'Toggle Light / Dark Theme', category: 'Theme', action: () => setTheme(state.theme === 'dark' ? 'light' : 'dark') },
     { label: 'Copy Full Forge Invariant Test Command', category: 'Developer', action: () => {
       navigator.clipboard.writeText('forge test --gas-report -vvv');
@@ -523,6 +705,7 @@ async function initApp() {
   // Initialize Modules
   initDynamics();
   initSpecLab(specData);
+  initSandbox();
   initInvariants(specData);
   initTraceLab(specData.traces);
   initCommandPalette();

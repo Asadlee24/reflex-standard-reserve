@@ -34,6 +34,7 @@
           <li><a href="#overview" class="nav-link active">Overview</a></li>
           <li><a href="#dynamics" class="nav-link">Dynamics</a></li>
           <li><a href="#speclab" class="nav-link">SpecLab</a></li>
+          <li><a href="#sandbox" class="nav-link">Sandbox</a></li>
           <li><a href="#invariants" class="nav-link">Invariants</a></li>
           <li><a href="#tracelab" class="nav-link">Trace Lab</a></li>
           <li><a href="#provenance" class="nav-link">Provenance</a></li>
@@ -75,6 +76,7 @@
           <div class="hero-cta-group">
             <a href="#dynamics" class="btn-primary">Explore Dynamics ↘</a>
             <a href="#speclab" class="btn-secondary">Open SpecLab ↘</a>
+            <a href="#sandbox" class="btn-secondary">Live Sandbox ↘</a>
           </div>
 
           <div class="hero-meta">
@@ -115,8 +117,15 @@
             <div class="inst-link">Open Specification →</div>
           </a>
 
+          <a href="#sandbox" class="instrument-card">
+            <span class="inst-num">03 / INTERACTIVE</span>
+            <h3 class="inst-title">Spec Sandbox</h3>
+            <p class="inst-desc">Dispatch live actions, mutate protocol state vectors, and evaluate invariants in real time.</p>
+            <div class="inst-link">Enter Sandbox →</div>
+          </a>
+
           <a href="#tracelab" class="instrument-card">
-            <span class="inst-num">03 / FORENSICS</span>
+            <span class="inst-num">04 / FORENSICS</span>
             <h3 class="inst-title">Trace Lab</h3>
             <p class="inst-desc">Randomized state-transition sequence replay with pre/post state diffs and invariant evaluations.</p>
             <div class="inst-link">Scrub Traces →</div>
@@ -278,6 +287,8 @@
 
             <!-- Export Buttons -->
             <div class="export-actions-row">
+              <button id="btnShareScenario" class="btn-secondary">Share Scenario Link 🔗</button>
+              <button id="btnAcademicReport" class="btn-primary">Generate Research Report 📄</button>
               <button id="btnExportCsv" class="btn-export">Export CSV</button>
               <button id="btnExportJson" class="btn-export">Export JSON</button>
             </div>
@@ -328,8 +339,94 @@
       </div>
     </section>
 
+    <!-- MODULE: INTERACTIVE SPEC SANDBOX -->
+    <section id="sandbox" class="research-section">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <div class="section-eyebrow">Interactive Verification</div>
+            <h2 class="section-heading">Live Spec Engine & State Dispatcher</h2>
+          </div>
+          <p class="section-subtext">
+            Dispatch actions directly to the reference state machine and observe live state vector mutations alongside real-time invariant monitoring.
+          </p>
+        </div>
+
+        <div class="sandbox-grid">
+          <!-- Left: State Vector & Invariant Monitors -->
+          <div class="sandbox-state-panel">
+            <div class="sandbox-panel-head">
+              <h4>LIVE PROTOCOL STATE</h4>
+              <button id="btnSandboxReset" class="btn-table-action">Reset Sandbox</button>
+            </div>
+
+            <div class="state-metrics-grid">
+              <div class="state-metric-box">
+                <span class="sm-lbl">CIRCULATING $STANDARD</span>
+                <span class="sm-val" id="sbCirculating">10,000,000</span>
+              </div>
+              <div class="state-metric-box">
+                <span class="sm-lbl">UNMINTED ACCRUALS</span>
+                <span class="sm-val" id="sbAccruals">0</span>
+              </div>
+              <div class="state-metric-box">
+                <span class="sm-lbl">REMAINING BUDGET</span>
+                <span class="sm-val" id="sbBudget">90,000,000</span>
+              </div>
+              <div class="state-metric-box">
+                <span class="sm-lbl">TOTAL BURNED</span>
+                <span class="sm-val" id="sbBurned">0</span>
+              </div>
+              <div class="state-metric-box">
+                <span class="sm-lbl">ACTIVE CHARTERS</span>
+                <span class="sm-val" id="sbCharters">0</span>
+              </div>
+              <div class="state-metric-box">
+                <span class="sm-lbl">ACTIVE BRANCHES</span>
+                <span class="sm-val" id="sbBranches">0</span>
+              </div>
+            </div>
+
+            <!-- Live Invariant Status Strip -->
+            <div class="live-inv-strip">
+              <span class="panel-tag">REAL-TIME INVARIANT MONITORS</span>
+              <div class="live-inv-badges" id="sbInvariantBadges">
+                <div class="sb-inv-pill pass" id="pillInvSupply">INV-SUPPLY-001: <strong>PASS</strong></div>
+                <div class="sb-inv-pill pass" id="pillInvAccounting">INV-ACCOUNTING-001: <strong>PASS</strong></div>
+                <div class="sb-inv-pill pass" id="pillInvBranch">INV-BRANCH-001: <strong>PASS</strong></div>
+                <div class="sb-inv-pill pass" id="pillInvBudget">INV-SUPPLY-002: <strong>PASS</strong></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Action Dispatcher & History -->
+          <div class="sandbox-action-panel">
+            <div class="sandbox-panel-head">
+              <h4>DISPATCH PROTOCOL ACTIONS</h4>
+            </div>
+
+            <div class="action-btn-grid">
+              <button class="btn-dispatch" id="actCreateCharter">➕ Create Charter (Cap: 3)</button>
+              <button class="btn-dispatch" id="actOpenBranch">🏛️ Open Branch</button>
+              <button class="btn-dispatch" id="actAccrue">📈 Accrue Issuance (+250k)</button>
+              <button class="btn-dispatch" id="actResolve">🚪 Resolve Branch</button>
+              <button class="btn-dispatch" id="actBurn">🔥 Burn Tokens (-100k)</button>
+              <button class="btn-dispatch" id="actAdvanceEpoch">⏳ Advance Epoch</button>
+            </div>
+
+            <div class="action-history-wrap">
+              <span class="panel-tag">EVENT EXECUTION LOG</span>
+              <div class="action-history-list" id="sbActionHistory">
+                <!-- Rendered via JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- MODULE 03: INVARIANT REGISTRY -->
-    <section id="invariants" class="research-section">
+    <section id="invariants" class="research-section alt-bg">
       <div class="container">
         <div class="section-head">
           <div>
@@ -379,7 +476,7 @@
     </section>
 
     <!-- MODULE 04: TRACE LAB -->
-    <section id="tracelab" class="research-section alt-bg">
+    <section id="tracelab" class="research-section">
       <div class="container">
         <div class="section-head">
           <div>
@@ -398,7 +495,7 @@
     </section>
 
     <!-- MODULE 05: PROVENANCE PROOF CHAIN -->
-    <section id="provenance" class="research-section">
+    <section id="provenance" class="research-section alt-bg">
       <div class="container">
         <div class="section-head">
           <div>
@@ -417,7 +514,7 @@
     </section>
 
     <!-- MODULE 06: RESEARCH & ASSUMPTIONS -->
-    <section id="assumptions" class="research-section alt-bg">
+    <section id="assumptions" class="research-section">
       <div class="container">
         <div class="section-head">
           <div>
@@ -458,7 +555,7 @@
     </section>
 
     <!-- MODULE 07: LIVE DIFFERENTIAL -->
-    <section id="differential" class="research-section">
+    <section id="differential" class="research-section alt-bg">
       <div class="container">
         <div class="section-head">
           <div>
@@ -484,7 +581,7 @@
     </section>
 
     <!-- MODULE 08: ABOUT -->
-    <section id="about" class="research-section alt-bg">
+    <section id="about" class="research-section">
       <div class="container">
         <div class="section-head">
           <div>
@@ -528,6 +625,18 @@
       <div class="cmd-results-list" id="cmdResultsList">
         <!-- Rendered via JS -->
       </div>
+    </div>
+  </div>
+
+  <!-- Solidity Code Modal -->
+  <div id="codeModal" class="cmd-modal-backdrop" aria-hidden="true">
+    <div class="cmd-modal-dialog code-modal-dialog">
+      <div class="cmd-input-wrap">
+        <span id="codeModalTitle" style="font-weight: 600; font-size: 13px;">Solidity Reference Spec</span>
+        <button id="btnCopyCodeModal" class="btn-table-action" style="margin-left: auto;">Copy Code</button>
+        <button id="btnCloseCodeModal" class="btn-table-action" style="margin-left: 8px;">✕</button>
+      </div>
+      <pre class="code-modal-pre"><code id="codeModalBody"></code></pre>
     </div>
   </div>
 
