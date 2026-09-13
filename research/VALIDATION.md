@@ -1,10 +1,12 @@
 # REFLEX — Validation gate
 
+> Historical Dynamics validation notes. Counts below describe an earlier model snapshot, not the current test suite or a Foundry result. Run `npm test` for current Node output. See [Launch review](LAUNCH_REVIEW.md) for scope.
+
 REFLEX was not allowed to proceed to a polished interface until the core loop demonstrated more than one meaningful regime.
 
 ## Test status
 
-`npm test` currently runs 8 deterministic tests covering:
+`npm test` previously ran 8 deterministic tests covering:
 
 - exit-pressure bounds
 - quadratic fee bounds
@@ -15,7 +17,7 @@ REFLEX was not allowed to proceed to a polished interface until the core loop de
 - deterministic replay
 - presence of both stable and cascade regimes
 
-All 8 tests pass.
+The earlier record reported all 8 tests passing.
 
 ## Parameter sweep
 
@@ -25,7 +27,7 @@ The UI's default stability map runs 651 complete simulations:
 - fee deterrence: 0 → 20 (21 steps)
 - all other parameters: current baseline defaults
 
-Current result distribution:
+Historical result distribution:
 
 - **374 stable**
 - **146 borderline**

@@ -335,7 +335,7 @@ function renderSpecDomains() {
   container.innerHTML = SPEC_DOMAINS.map((d) => `
     <button class="domain-btn ${state.activeSpecDomain === d.id ? 'active' : ''}" data-domain="${d.id}">
       <span>${d.label}</span>
-      <span class="domain-count">${d.count}</span>
+      <span class="domain-count">${(state.speclab?.rules || []).filter(r => d.id === 'ALL' || r.domain === d.id).length}</span>
     </button>
   `).join('');
 
@@ -397,12 +397,12 @@ function selectSpecRule(ruleId) {
   if (!pane || !state.speclab) return;
 
   const rule = state.speclab.rules.find((r) => r.id === ruleId) || state.speclab.rules[0];
-  pane.innerHTML = renderProvenanceChain(rule.id, state.speclab.rules, state.speclab.invariants);
+  pane.innerHTML = renderProvenanceChain(rule?.id, state.speclab.rules, state.speclab.invariants);
 
   // Update standalone provenance graph as well
   const provViewer = $('#provenanceViewer');
   if (provViewer) {
-    provViewer.innerHTML = renderProvenanceChain(rule.id, state.speclab.rules, state.speclab.invariants);
+    provViewer.innerHTML = renderProvenanceChain(rule?.id, state.speclab.rules, state.speclab.invariants);
   }
 }
 
@@ -539,6 +539,16 @@ function updateInvBadge(sel, name, status) {
 // MODULE 03: INVARIANT REGISTRY
 // ==========================================================================
 function initInvariants(data) {
+  const count = $('#modelInvariantCount');
+  if (count) count.textContent = `${data.invariants.length} Candidate Properties`;
+  const evidence = $('#specEvidenceStatus');
+  if (evidence) evidence.textContent = data.testResults.status === 'UNAVAILABLE'
+    ? 'Data unavailable' : 'No execution record attached';
+  $$('#invFilterPills .filter-pill').forEach(pill => {
+    const domain = pill.dataset.filter;
+    const count = data.invariants.filter(i => domain === 'ALL' || i.domain === domain).length;
+    pill.textContent = `${domain} (${count})`;
+  });
   renderInvariantsTable(data.invariants);
 
   $('#invFilterPills')?.addEventListener('click', (e) => {
@@ -569,8 +579,8 @@ function renderInvariantsTable(invariants) {
       <td><span class="inv-status-tag ${inv.classification.toLowerCase()}">${inv.classification}</span></td>
       <td><span class="inv-status-tag ${inv.status.toLowerCase()}">${inv.status}</span></td>
       <td>
-        <button class="btn-table-action btn-copy-forge" data-cmd="forge test --match-test invariant_${inv.id.replace(/-/g, '_')} -vvv">
-          Copy Test Cmd
+        <button class="btn-table-action btn-copy-forge" data-cmd="${inv.testCommand || ''}" ${inv.testCommand ? '' : 'disabled'}>
+          ${inv.testCommand ? 'Copy Test Cmd' : 'No mapped test'}
         </button>
       </td>
     </tr>

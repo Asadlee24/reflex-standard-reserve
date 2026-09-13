@@ -1,5 +1,9 @@
 # Research Changelog & Audit Trail
 
+## 13 September 2026: Evidence labels
+
+Removed unsubstantiated success metadata and embedded fallback results. Labeled traces as authored examples. Added current source review and known model differences. Earlier entries describing reproducible fuzz traces do not establish execution evidence.
+
 **REFLEX Research Laboratory**  
 *Curated by Asad Lee (GitHub: [@Asadlee24](https://github.com/Asadlee24))*
 

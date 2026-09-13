@@ -1,5 +1,7 @@
 # Source of Truth Matrix — The Standard Reserve
 
+> Historical model notes under review. These classifications and source sections are not verified against the current launch design. See [Launch review and model limits](LAUNCH_REVIEW.md).
+
 **REFLEX Research Laboratory**  
 *Curated & Maintained by Asad Lee (GitHub: [@Asadlee24](https://github.com/Asadlee24))*  
 *Last Comprehensive Audit: September 2026*
@@ -49,8 +51,8 @@ This matrix catalogs all known specification claims, parameters, and mechanisms 
 | **`SR-AUCTION-001`** | `AUCTIONS` | Expansion Licence Auctions: New Branch expansion licences are sold via competitive protocol auctions. | `CONFIRMED` | Whitepaper v1 & 0xBeans Notes | §5.1 Auction Engine | Vickrey-style / sealed-bid architecture reference (Philogy). |
 | **`SR-AUCTION-002`** | `AUCTIONS` | Single Settlement: An auction instance can settle exactly once; bids cannot be refunded after settlement. | `DERIVED` | Auction State Machine | §5.3 Settlement Rules | Eliminates double-spend or duplicate licence minting. |
 | **`SR-VAULT-001`** | `VAULTS` | Expansion & Contraction Vaults: Dedicated reserve vaults hold protocol-owned liquidity and hard reserves (e.g. ETH/Gold references). | `CONFIRMED` | Whitepaper v1 | §6.1 Treasury Management | Vault outflows are strictly governed by policy engine contracts. |
-| **`SR-VAULT-002`** | `VAULTS` | Solvency Conservation: Vault accounting cannot create unbacked claims or negative reserve balances. | `DERIVED` | Reserve Invariants | §6.2 Solvency Rules | Invariant verified in Foundry test suite. |
+| **`SR-VAULT-002`** | `VAULTS` | Solvency Conservation: Vault accounting cannot create unbacked claims or negative reserve balances. | `DERIVED` | Reserve Invariants | §6.2 Solvency Rules | Foundry execution evidence is not attached. |
 
 ---
 
-*Note: All rules are tested in Foundry via `test/invariant/` and executable in the SpecLab interactive browser.*
+*Note: Registry entries are candidate model properties; implementation coverage and execution evidence must be established separately.*

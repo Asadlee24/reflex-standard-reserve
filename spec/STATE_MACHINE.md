@@ -1,5 +1,7 @@
 # Formal State Machine Specification
 
+> Legacy model states with known differences from the published launch design. See [Launch review](../research/LAUNCH_REVIEW.md).
+
 **REFLEX SpecLab — The Standard Reserve**  
 *Curated by Asad Lee (GitHub: [@Asadlee24](https://github.com/Asadlee24))*
 

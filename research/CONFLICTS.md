@@ -1,5 +1,7 @@
 # Source Divergences & Interpretive Conflicts
 
+> Historical model notes under review. These classifications and source sections are not verified against the current launch design. See [Launch review and model limits](LAUNCH_REVIEW.md).
+
 **REFLEX Research Laboratory**  
 *Curated by Asad Lee (GitHub: [@Asadlee24](https://github.com/Asadlee24))*
 
