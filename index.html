@@ -70,8 +70,10 @@
           <div class="hero-eyebrow">Standard Reserve Research Laboratory</div>
           <h1 class="hero-title">Research the mechanism.<br><em>Test the specification.</em></h1>
           <p class="hero-lead">
-            REFLEX brings two complementary research instruments into one laboratory: <strong>Dynamics</strong> explores exit-contagion feedback loops under behavioral assumptions, while <strong>SpecLab</strong> formalizes published rules into executable state transitions and Foundry invariant tests.
+            REFLEX brings two complementary research instruments into one laboratory: <strong>Dynamics</strong> explores exit-contagion feedback loops under behavioral assumptions, while <strong>SpecLab</strong> explores draft reference models and candidate properties. Source mappings and Foundry results remain unverified.
           </p>
+
+          <p class="research-notice"><strong>Model scope:</strong> SpecLab is a prototype with known differences from the current design. <a href="./research/LAUNCH_REVIEW.md">Read the launch review and evidence limits</a>.</p>
 
           <div class="hero-cta-group">
             <a href="#dynamics" class="btn-primary">Explore Dynamics ↘</a>
@@ -81,8 +83,8 @@
 
           <div class="hero-meta">
             <span>● 2 Research Instruments</span>
-            <span>● 16 Invariants Verified</span>
-            <span>● 0 Fake Live Data</span>
+            <span>● <span id="modelInvariantCount">Candidate Properties</span></span>
+            <span>● Independent Research Prototype</span>
             <span>Built by <a href="https://github.com/Asadlee24" target="_blank" rel="noopener noreferrer">Asad Lee ↗</a></span>
           </div>
         </div>
@@ -120,14 +122,14 @@
           <a href="#sandbox" class="instrument-card">
             <span class="inst-num">03 / INTERACTIVE</span>
             <h3 class="inst-title">Spec Sandbox</h3>
-            <p class="inst-desc">Dispatch live actions, mutate protocol state vectors, and evaluate invariants in real time.</p>
+            <p class="inst-desc">Explore simulated state transitions and evaluate model properties in your browser.</p>
             <div class="inst-link">Enter Sandbox →</div>
           </a>
 
           <a href="#tracelab" class="instrument-card">
             <span class="inst-num">04 / FORENSICS</span>
             <h3 class="inst-title">Trace Lab</h3>
-            <p class="inst-desc">Randomized state-transition sequence replay with pre/post state diffs and invariant evaluations.</p>
+            <p class="inst-desc">Replay authored examples with illustrative pre/post state differences.</p>
             <div class="inst-link">Scrub Traces →</div>
           </a>
         </div>
@@ -356,14 +358,14 @@
           <!-- Left: State Vector & Invariant Monitors -->
           <div class="sandbox-state-panel">
             <div class="sandbox-panel-head">
-              <h4>LIVE PROTOCOL STATE</h4>
+              <h4>SIMULATED MODEL STATE</h4>
               <button id="btnSandboxReset" class="btn-table-action">Reset Sandbox</button>
             </div>
 
             <div class="state-metrics-grid">
               <div class="state-metric-box">
                 <span class="sm-lbl">CIRCULATING $STANDARD</span>
-                <span class="sm-val" id="sbCirculating">10,000,000</span>
+                <span class="sm-val" id="sbCirculating">100,000,000</span>
               </div>
               <div class="state-metric-box">
                 <span class="sm-lbl">UNMINTED ACCRUALS</span>
@@ -371,7 +373,7 @@
               </div>
               <div class="state-metric-box">
                 <span class="sm-lbl">REMAINING BUDGET</span>
-                <span class="sm-val" id="sbBudget">90,000,000</span>
+                <span class="sm-val" id="sbBudget">900,000,000</span>
               </div>
               <div class="state-metric-box">
                 <span class="sm-lbl">TOTAL BURNED</span>
@@ -389,12 +391,12 @@
 
             <!-- Live Invariant Status Strip -->
             <div class="live-inv-strip">
-              <span class="panel-tag">REAL-TIME INVARIANT MONITORS</span>
+              <span class="panel-tag">CURRENT MODEL STATE CHECKS</span>
               <div class="live-inv-badges" id="sbInvariantBadges">
-                <div class="sb-inv-pill pass" id="pillInvSupply">INV-SUPPLY-001: <strong>PASS</strong></div>
-                <div class="sb-inv-pill pass" id="pillInvAccounting">INV-ACCOUNTING-001: <strong>PASS</strong></div>
-                <div class="sb-inv-pill pass" id="pillInvBranch">INV-BRANCH-001: <strong>PASS</strong></div>
-                <div class="sb-inv-pill pass" id="pillInvBudget">INV-SUPPLY-002: <strong>PASS</strong></div>
+                <div class="sb-inv-pill" id="pillInvSupply">INV-SUPPLY-001: <strong>NOT RUN</strong></div>
+                <div class="sb-inv-pill" id="pillInvAccounting">INV-ACCOUNTING-001: <strong>NOT RUN</strong></div>
+                <div class="sb-inv-pill" id="pillInvBranch">INV-BRANCH-001: <strong>NOT RUN</strong></div>
+                <div class="sb-inv-pill" id="pillInvBudget">INV-SUPPLY-002: <strong>NOT RUN</strong></div>
               </div>
             </div>
           </div>
@@ -405,9 +407,10 @@
               <h4>DISPATCH PROTOCOL ACTIONS</h4>
             </div>
 
+            <p class="section-subtext">Research sandbox: branch additions allocate a licence fixture. Licence payments and withdrawal fees are not simulated here. Amounts are whole tokens.</p>
             <div class="action-btn-grid">
-              <button class="btn-dispatch" id="actCreateCharter">➕ Create Charter (Cap: 3)</button>
-              <button class="btn-dispatch" id="actOpenBranch">🏛️ Open Branch</button>
+              <button class="btn-dispatch" id="actCreateCharter">➕ Create Charter + First Branch</button>
+              <button class="btn-dispatch" id="actOpenBranch">🏛️ Add Branch Fixture</button>
               <button class="btn-dispatch" id="actAccrue">📈 Accrue Issuance (+250k)</button>
               <button class="btn-dispatch" id="actResolve">🚪 Resolve Branch</button>
               <button class="btn-dispatch" id="actBurn">🔥 Burn Tokens (-100k)</button>
@@ -434,7 +437,7 @@
             <h2 class="section-heading">Invariant Registry & Foundry Suite</h2>
           </div>
           <p class="section-subtext">
-            What protocol properties must never become false? Every invariant is tested under randomized multi-action sequences using Foundry and reproducible state fuzzing.
+            Candidate properties for the reference model. The registry lists hypotheses and test mappings. A listing does not establish a successful test run or a formal proof. <a href="./research/VALIDATION.md">View model test evidence and limits</a>.
           </p>
         </div>
 
@@ -448,8 +451,8 @@
             <button class="filter-pill" data-filter="ACCOUNTING">ACCOUNTING (1)</button>
           </div>
           <div class="inv-ci-status">
-            <span class="status-indicator pass"></span>
-            CI Status: <strong>PASS (256 Fuzz Runs, Depth 32)</strong>
+            <span class="status-indicator"></span>
+            Evidence: <strong id="specEvidenceStatus">No execution record attached</strong>
           </div>
         </div>
 
@@ -484,7 +487,7 @@
             <h2 class="section-heading">Trace Lab — State Transition Sequence Replay</h2>
           </div>
           <p class="section-subtext">
-            Inspect step-by-step state changes, caller actions, pre/post state differences, and invariant evaluations across randomized sequence runs.
+            Inspect authored teaching examples. Displayed states and referenced properties are illustrative and were not captured from a test run.
           </p>
         </div>
 
@@ -503,7 +506,7 @@
             <h2 class="section-heading">Research Provenance Graph</h2>
           </div>
           <p class="section-subtext">
-            From Authoritative Primary Source → Specification Rule → Solidity Model → Protocol Invariant → Foundry Test Result.
+            Historical source references → draft model rules → candidate properties → test mappings. Verification results are not yet attached.
           </p>
         </div>
 
@@ -522,21 +525,21 @@
             <h2 class="section-heading">Assumptions, Unknowns & Source Matrix</h2>
           </div>
           <p class="section-subtext">
-            We explicitly isolate verified protocol rules from research assumptions, unrevealed launch bounds, and third-party community derivations.
+            These historical model notes require reconciliation with the current launch design. Review the assumptions and known differences before interpreting a simulation.
           </p>
         </div>
 
         <div class="assumptions-grid">
           <div class="assump-card">
-            <span class="assump-badge confirmed">CONFIRMED (14)</span>
+            <span class="assump-badge confirmed">SOURCE REVIEW PENDING</span>
             <h4>Primary Whitepaper Rules</h4>
-            <p>Directly documented in Standard Reserve Whitepaper v1 and official disclosures. Modeled in SpecLab contracts.</p>
+            <p>Legacy source references are retained for review. Their section mappings and modeled behavior have not been validated against the current design.</p>
           </div>
 
           <div class="assump-card">
-            <span class="assump-badge derived">DERIVED (5)</span>
+            <span class="assump-badge derived">CANDIDATE PROPERTIES</span>
             <h4>Mathematical Invariants</h4>
-            <p>Formal conservation equations and terminal state bounds logically following from primary rules.</p>
+            <p>Proposed model properties. Test coverage and execution evidence must be established separately.</p>
           </div>
 
           <div class="assump-card">
@@ -570,11 +573,11 @@
         <div class="diff-terminal-box">
           <div class="diff-status-row">
             <div class="diff-chip wait">DEPLOYMENT ADAPTER: AWAITING CANONICAL CONTRACTS</div>
-            <div class="diff-chip ready">REFERENCE SPECIFICATION: READY</div>
-            <div class="diff-chip ready">FOUNDRY HARNESS: READY</div>
+            <div class="diff-chip wait">REFERENCE MODEL: UNDER REVIEW</div>
+            <div class="diff-chip wait">FOUNDRY RESULTS: UNVERIFIED</div>
           </div>
           <p class="diff-terminal-body">
-            Once canonical contracts and verified deployment parameters are released on Ethereum / Uniswap v4, SpecLab will replay identical action sequences against both the reference model and deployed contracts to detect behavioral divergences. Zero fake RPC reads or placeholder contract addresses are used.
+            Differential testing is planned and is not implemented. It requires verified official contracts, a reconciled reference model, and an adapter that executes comparable actions. This page does not establish equivalence with a deployed protocol.
           </p>
         </div>
       </div>

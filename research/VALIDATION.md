@@ -1,38 +1,27 @@
-# REFLEX — Validation gate
+# Reproducible model validation
 
-REFLEX was not allowed to proceed to a polished interface until the core loop demonstrated more than one meaningful regime.
+Run from the repository root with Node 24 and Foundry installed:
 
-## Test status
+```sh
+node scripts/verify.mjs
+```
 
-`npm test` currently runs 8 deterministic tests covering:
+`REFLEX_FORGE` can select a local Foundry binary. The script actually executes Node tests and `forge test -vvv`, writes unmodified stdout/stderr, and records exit codes, tool versions, timestamps and SHA-256 hashes in [validation/latest.json](../validation/latest.json).
 
-- exit-pressure bounds
-- quadratic fee bounds
-- 50/50 modeled fee accounting
-- monotonic fee deterrence sanity check
-- zero-deterrence invariance
-- simulation accounting bounds
-- deterministic replay
-- presence of both stable and cascade regimes
+The record's base commit is contextual. The `sourceFiles` manifest identifies the exact tested working-tree bytes, including changes made before the evidence commit. Compare those hashes against the checked-out source to reproduce the same model. Execution evidence applies only to listed tests; registry export cannot turn these results into a claim that every candidate property or the official protocol is verified.
 
-All 8 tests pass.
+## Current coverage
 
-## Parameter sweep
+- Node: 22 tests, including the actual `lib/spec-engine.js` used by the browser. Coverage includes entry, terminal retirement, capacity consumption, ten-branch limits, numeric input rejection, budget conservation and zero-flow contraction.
+- Solidity: seven unit/fuzz tests covering Dutch purchase prices, earlier-receipt preservation, supply/time limits, payment failures, licence burns, Charter lifecycle and zero flow. The price monotonicity test runs 256 fuzz cases under the default configuration.
+- Stateful Foundry: four invariant functions over a targeted handler. The default run executes 64 sequences at depth 32 (2,048 handler calls), checking supply, accounting, fee bounds and Charter lifecycle.
 
-The UI's default stability map runs 651 complete simulations:
+Foundry 1.8.1 reports the four invariants as one grouped test. Consequently its aggregate reports eight tests: seven unit/fuzz tests plus one invariant group. Raw logs preserve the full result without inflating the number of executed checks.
 
-- contagion strength: 0 → 30 (31 steps)
-- fee deterrence: 0 → 20 (21 steps)
-- all other parameters: current baseline defaults
+## Browser check limitation
 
-Current result distribution:
+On 13 September 2026 the local Agent Browser daemon could not bind its socket in the environment. The Cloud Browser also blocked the localhost URL (`ERR_BLOCKED_BY_CLIENT`). No successful visual/browser interaction check or production deployment verification is claimed. Node tests validate the browser engine but not rendered event bindings or layout.
 
-- **374 stable**
-- **146 borderline**
-- **131 cascade**
+## Boundaries
 
-This satisfies the MVP validation gate: the model does not mechanically return one result across assumption space.
-
-## What this does *not* prove
-
-It does not validate the real Standard Reserve protocol. The split exists because of the REFLEX behavioral model and the selected assumption ranges. The stability map is useful only as a sensitivity surface: a reader should be able to disagree with an assumption, change it, and reproduce the resulting path.
+The auction schedule is an explicit discrete fixture. It is not the canonical exponential curve or a Genesis mint forecast. Browser/BranchSpec withdrawal fixtures omit integrated resolution fees. Policy multiplier values are illustrative. No comparison against official deployed bytecode was executed. See [launch review](LAUNCH_REVIEW.md).

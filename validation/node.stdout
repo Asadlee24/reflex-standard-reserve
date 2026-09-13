@@ -1,0 +1,142 @@
+TAP version 13
+# Subtest: sensitivity analysis evaluates every documented local parameter in both directions
+ok 1 - sensitivity analysis evaluates every documented local parameter in both directions
+  ---
+  duration_ms: 3.492777
+  type: 'test'
+  ...
+# Subtest: breakpoint analysis identifies the cascade threshold in a cascade path
+ok 2 - breakpoint analysis identifies the cascade threshold in a cascade path
+  ---
+  duration_ms: 0.356518
+  type: 'test'
+  ...
+# Subtest: seeded stress tests are exactly reproducible
+ok 3 - seeded stress tests are exactly reproducible
+  ---
+  duration_ms: 4.019792
+  type: 'test'
+  ...
+# Subtest: comparison prefers the lower-regime path
+ok 4 - comparison prefers the lower-regime path
+  ---
+  duration_ms: 0.273343
+  type: 'test'
+  ...
+# Subtest: an authored export never fabricates execution evidence or references nonexistent test functions
+ok 5 - an authored export never fabricates execution evidence or references nonexistent test functions
+  ---
+  duration_ms: 56.390886
+  type: 'test'
+  ...
+# Subtest: a network failure produces an unavailable state without positive fallback results
+ok 6 - a network failure produces an unavailable state without positive fallback results
+  ---
+  duration_ms: 1.388433
+  type: 'test'
+  ...
+# Subtest: a http failure produces an unavailable state without positive fallback results
+ok 7 - a http failure produces an unavailable state without positive fallback results
+  ---
+  duration_ms: 0.300694
+  type: 'test'
+  ...
+# Subtest: a malformed failure produces an unavailable state without positive fallback results
+ok 8 - a malformed failure produces an unavailable state without positive fallback results
+  ---
+  duration_ms: 0.268465
+  type: 'test'
+  ...
+# Subtest: exit pressure is bounded and intuitive
+ok 9 - exit pressure is bounded and intuitive
+  ---
+  duration_ms: 0.759686
+  type: 'test'
+  ...
+# Subtest: quadratic fee is bounded by floor and ceiling
+ok 10 - quadratic fee is bounded by floor and ceiling
+  ---
+  duration_ms: 0.148645
+  type: 'test'
+  ...
+# Subtest: fee split reconciles exactly
+ok 11 - fee split reconciles exactly
+  ---
+  duration_ms: 0.175174
+  type: 'test'
+  ...
+# Subtest: higher exit cost cannot increase exit probability when other terms are fixed
+ok 12 - higher exit cost cannot increase exit probability when other terms are fixed
+  ---
+  duration_ms: 1.271909
+  type: 'test'
+  ...
+# Subtest: if fee deterrence is zero, changing fee does not change behavior
+ok 13 - if fee deterrence is zero, changing fee does not change behavior
+  ---
+  duration_ms: 0.30477
+  type: 'test'
+  ...
+# Subtest: simulation preserves accounting bounds
+ok 14 - simulation preserves accounting bounds
+  ---
+  duration_ms: 1.277897
+  type: 'test'
+  ...
+# Subtest: same configuration is deterministic
+ok 15 - same configuration is deterministic
+  ---
+  duration_ms: 1.585421
+  type: 'test'
+  ...
+# Subtest: model exhibits distinct stable and cascade regimes
+ok 16 - model exhibits distinct stable and cascade regimes
+  ---
+  duration_ms: 0.374625
+  type: 'test'
+  ...
+# Subtest: published supply defaults and first branch are present at Charter creation
+ok 17 - published supply defaults and first branch are present at Charter creation
+  ---
+  duration_ms: 14.71556
+  type: 'test'
+  ...
+# Subtest: budget cannot be exceeded and burns do not replenish issuance
+ok 18 - budget cannot be exceeded and burns do not replenish issuance
+  ---
+  duration_ms: 3.638947
+  type: 'test'
+  ...
+# Subtest: partial retirement consumes capacity; last exit burns permanently
+ok 19 - partial retirement consumes capacity; last exit burns permanently
+  ---
+  duration_ms: 0.393774
+  type: 'test'
+  ...
+# Subtest: a Charter cannot exceed ten branches
+ok 20 - a Charter cannot exceed ten branches
+  ---
+  duration_ms: 0.255145
+  type: 'test'
+  ...
+# Subtest: invalid numeric inputs cannot mutate accounting
+ok 21 - invalid numeric inputs cannot mutate accounting
+  ---
+  duration_ms: 0.40459
+  type: 'test'
+  ...
+# Subtest: zero net flow is contraction and reset restores a clean model
+ok 22 - zero net flow is contraction and reset restores a clean model
+  ---
+  duration_ms: 0.206071
+  type: 'test'
+  ...
+1..22
+# tests 22
+# suites 0
+# pass 22
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 148.109453

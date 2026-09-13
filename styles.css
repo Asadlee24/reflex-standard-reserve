@@ -3185,3 +3185,11 @@ body {
 }
 
 
+
+/* Reference evidence and illustrative traces. */
+.research-notice, .trace-evidence-note { color: var(--text-secondary); font-size: .875rem; line-height: 1.6; }
+.research-notice { margin: 0 0 1.25rem; }
+.trace-evidence-note { padding: 0 1.25rem; }
+.inv-status-tag.unverified, .rule-classification.needs_review, .prov-badge.needs_review,
+.trace-badge.illustrative { color: #9a6700; background: rgba(154, 103, 0, .10); }
+.btn-table-action:disabled { opacity: .6; cursor: default; }

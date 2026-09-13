@@ -1,5 +1,7 @@
 # REFLEX — Research Sources & Evidentiary Hierarchy
 
+> Historical model notes under review. These classifications and source sections are not verified against the current launch design. See [Launch review and model limits](LAUNCH_REVIEW.md).
+
 **REFLEX Research Laboratory**  
 *Curated by Asad Lee (GitHub: [@Asadlee24](https://github.com/Asadlee24))*  
 *Last Updated: September 2026*
@@ -16,7 +18,7 @@ graph TD
     T2 --> T3["Tier 3: Official @standard_rsv Announcements"]
     T3 --> T4["Tier 4: 0xBeans (Founder) Technical Disclosures"]
     T4 --> T5["Tier 5: Canonical Smart Contract Bytecode (Pending)"]
-    T5 --> T6["Tier 6: Dependency Specifications (Uniswap v4, Vickrey)"]
+    T5 --> T6["Tier 6: Dependency Specifications (Uniswap v4)"]
     T6 --> T7["Tier 7: Third-Party / Community Analysis (Central Bank Bot)"]
 ```
 
@@ -39,7 +41,7 @@ graph TD
 
 ### Tier 6: Dependency & Auction References
 - **Uniswap v4 Core Architecture**: [docs.uniswap.org/contracts/v4/overview](https://docs.uniswap.org/contracts/v4/overview)
-- **Vickrey / Sealed-Bid Reference**: [github.com/Philogy/create2-vickrey-contracts](https://github.com/Philogy/create2-vickrey-contracts)
+- **Historical background only, not evidence for the current auction design**: [github.com/Philogy/create2-vickrey-contracts](https://github.com/Philogy/create2-vickrey-contracts)
 
 ### Tier 7: Community Analysis (Non-Authoritative)
 - **Central Bank Bot Methodology**: [centralbank.bot/methodology.html](https://centralbank.bot/methodology.html)

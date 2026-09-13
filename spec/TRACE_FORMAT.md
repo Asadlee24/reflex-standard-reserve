@@ -1,5 +1,7 @@
 # SpecLab Failure & Sequence Trace Format
 
+> Proposed execution-record schema. The current generated traces are authored examples with `kind: AUTHORED_EXAMPLE`, `verdict: ILLUSTRATIVE`, and unevaluated steps. The PASS examples below describe a possible future record, not existing run evidence.
+
 **REFLEX SpecLab — Forensic Execution Traces**  
 *Curated by Asad Lee (GitHub: [@Asadlee24](https://github.com/Asadlee24))*
 

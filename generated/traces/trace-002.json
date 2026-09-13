@@ -1,9 +1,9 @@
 {
   "traceId": "TRACE-002",
-  "name": "Multi-Branch Capacity Exhaustion & Fuzz Interleaving",
-  "timestamp": "2026-09-01T14:35:00Z",
-  "seed": "0x5354414e444152445f3032",
-  "verdict": "PASS",
+  "name": "Illustrative Branch Capacity Sequence",
+  "timestamp": null,
+  "seed": null,
+  "verdict": "ILLUSTRATIVE",
   "failureClassification": null,
   "stepsCount": 5,
   "steps": [
@@ -21,7 +21,7 @@
       "invariantsChecked": [
         "INV-CHARTER-001"
       ],
-      "status": "PASS"
+      "status": "NOT_EVALUATED"
     },
     {
       "stepIndex": 1,
@@ -36,7 +36,7 @@
       "invariantsChecked": [
         "INV-BRANCH-001"
       ],
-      "status": "PASS"
+      "status": "NOT_EVALUATED"
     },
     {
       "stepIndex": 2,
@@ -51,7 +51,7 @@
       "invariantsChecked": [
         "INV-BRANCH-001"
       ],
-      "status": "PASS"
+      "status": "NOT_EVALUATED"
     },
     {
       "stepIndex": 3,
@@ -69,7 +69,7 @@
       "invariantsChecked": [
         "INV-BRANCH-001"
       ],
-      "status": "PASS"
+      "status": "NOT_EVALUATED"
     },
     {
       "stepIndex": 4,
@@ -84,7 +84,9 @@
       "invariantsChecked": [
         "INV-BRANCH-001"
       ],
-      "status": "PASS"
+      "status": "NOT_EVALUATED"
     }
-  ]
+  ],
+  "kind": "AUTHORED_EXAMPLE",
+  "note": "Illustrative low-level fixture transitions. Setup uses custom capacity and supply and omits fees. No tests were executed to produce this trace."
 }

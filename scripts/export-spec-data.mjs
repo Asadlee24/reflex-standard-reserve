@@ -24,7 +24,7 @@ const specRules = [
     id: "SR-SUPPLY-002",
     domain: "SUPPLY",
     title: "Genesis Allocation",
-    summary: "Fixed initial supply minted at protocol genesis for initial liquidity and founding charters.",
+    summary: "100 million STANDARD is preminted as protocol-owned liquidity; the hard cap is 1 billion.",
     classification: "CONFIRMED",
     source: "Official Whitepaper v1 §1.2",
     model: "StandardSpec.sol",
@@ -90,7 +90,7 @@ const specRules = [
     id: "SR-CHARTER-002",
     domain: "CHARTERS",
     title: "Charter Lifecycle Transitions",
-    summary: "Charters transition from Active -> Dormant -> Burned upon final branch exit or destruction.",
+    summary: "Retiring the last branch burns the Charter permanently. Re-entry requires a new Charter.",
     classification: "DERIVED",
     source: "Official Whitepaper v1 §2.4",
     model: "CharterSpec.sol",
@@ -200,7 +200,7 @@ const specRules = [
     id: "SR-AUCTION-001",
     domain: "AUCTIONS",
     title: "Expansion Licence Auctions",
-    summary: "New Branch expansion licences are sold via competitive protocol auctions.",
+    summary: "Daily Dutch purchases execute immediately at the current falling price. Licence payments burn STANDARD.",
     classification: "CONFIRMED",
     source: "Official Whitepaper v1 §5.1",
     model: "AuctionSpec.sol",
@@ -231,10 +231,10 @@ const invariants = [
     sourceRule: "SR-SUPPLY-001",
     classification: "CONFIRMED",
     foundryTest: "ProtocolInvariantTest::invariant_SupplyHardCap",
-    status: "PASS",
-    runs: 256,
-    depth: 32,
-    commit: "f426425"
+    status: "UNVERIFIED",
+    runs: null,
+    depth: null,
+    commit: null
   },
   {
     id: "INV-SUPPLY-002",
@@ -245,10 +245,10 @@ const invariants = [
     sourceRule: "SR-SUPPLY-003",
     classification: "DERIVED",
     foundryTest: "SupplyInvariant.t.sol",
-    status: "PASS",
-    runs: 256,
-    depth: 32,
-    commit: "f426425"
+    status: "UNVERIFIED",
+    runs: null,
+    depth: null,
+    commit: null
   },
   {
     id: "INV-SUPPLY-003",
@@ -259,10 +259,10 @@ const invariants = [
     sourceRule: "SR-SUPPLY-004",
     classification: "DERIVED",
     foundryTest: "SupplyInvariant.t.sol",
-    status: "PASS",
-    runs: 256,
-    depth: 32,
-    commit: "f426425"
+    status: "UNVERIFIED",
+    runs: null,
+    depth: null,
+    commit: null
   },
   {
     id: "INV-BRANCH-001",
@@ -273,10 +273,10 @@ const invariants = [
     sourceRule: "SR-BRANCH-002",
     classification: "CONFIRMED",
     foundryTest: "BranchInvariant.t.sol",
-    status: "PASS",
-    runs: 256,
-    depth: 32,
-    commit: "f426425"
+    status: "UNVERIFIED",
+    runs: null,
+    depth: null,
+    commit: null
   },
   {
     id: "INV-BRANCH-002",
@@ -287,10 +287,10 @@ const invariants = [
     sourceRule: "SR-BRANCH-004",
     classification: "DERIVED",
     foundryTest: "BranchInvariant.t.sol",
-    status: "PASS",
-    runs: 256,
-    depth: 32,
-    commit: "f426425"
+    status: "UNVERIFIED",
+    runs: null,
+    depth: null,
+    commit: null
   },
   {
     id: "INV-BRANCH-003",
@@ -301,10 +301,10 @@ const invariants = [
     sourceRule: "SR-BRANCH-004",
     classification: "DERIVED",
     foundryTest: "BranchInvariant.t.sol",
-    status: "PASS",
-    runs: 256,
-    depth: 32,
-    commit: "f426425"
+    status: "UNVERIFIED",
+    runs: null,
+    depth: null,
+    commit: null
   },
   {
     id: "INV-CHARTER-001",
@@ -315,24 +315,24 @@ const invariants = [
     sourceRule: "SR-CHARTER-002",
     classification: "DERIVED",
     foundryTest: "CharterInvariant.t.sol",
-    status: "PASS",
-    runs: 256,
-    depth: 32,
-    commit: "f426425"
+    status: "UNVERIFIED",
+    runs: null,
+    depth: null,
+    commit: null
   },
   {
     id: "INV-CHARTER-002",
-    name: "Charter Dormancy on Branch Exhaustion",
+    name: "Terminal Charter Burn on Last Exit",
     domain: "CHARTERS",
-    formalProperty: "activeBranches(c) == 0 => c.status in {Dormant, Burned}",
-    rationale: "A Charter with no active operational branches enters dormant status.",
+    formalProperty: "previouslyOpened(c) && activeBranches(c) == 0 => c.status == Burned",
+    rationale: "A previously opened Charter burns when its last branch is retired.",
     sourceRule: "SR-CHARTER-002",
     classification: "DERIVED",
     foundryTest: "CharterInvariant.t.sol",
-    status: "PASS",
-    runs: 256,
-    depth: 32,
-    commit: "f426425"
+    status: "UNVERIFIED",
+    runs: null,
+    depth: null,
+    commit: null
   },
   {
     id: "INV-ISSUANCE-001",
@@ -343,10 +343,10 @@ const invariants = [
     sourceRule: "SR-ISSUANCE-001",
     classification: "CONFIRMED",
     foundryTest: "IssuanceInvariant.t.sol",
-    status: "PASS",
-    runs: 256,
-    depth: 32,
-    commit: "f426425"
+    status: "UNVERIFIED",
+    runs: null,
+    depth: null,
+    commit: null
   },
   {
     id: "INV-ISSUANCE-002",
@@ -357,10 +357,10 @@ const invariants = [
     sourceRule: "SR-ISSUANCE-002",
     classification: "DERIVED",
     foundryTest: "IssuanceInvariant.t.sol",
-    status: "PASS",
-    runs: 256,
-    depth: 32,
-    commit: "f426425"
+    status: "UNVERIFIED",
+    runs: null,
+    depth: null,
+    commit: null
   },
   {
     id: "INV-RESOLUTION-001",
@@ -371,10 +371,10 @@ const invariants = [
     sourceRule: "SR-RESOLUTION-002",
     classification: "CONFIRMED",
     foundryTest: "ProtocolInvariantTest::invariant_FeeBounds",
-    status: "PASS",
-    runs: 256,
-    depth: 32,
-    commit: "f426425"
+    status: "UNVERIFIED",
+    runs: null,
+    depth: null,
+    commit: null
   },
   {
     id: "INV-RESOLUTION-002",
@@ -385,10 +385,10 @@ const invariants = [
     sourceRule: "SR-RESOLUTION-003",
     classification: "CONFIRMED",
     foundryTest: "ResolutionInvariant.t.sol",
-    status: "PASS",
-    runs: 256,
-    depth: 32,
-    commit: "f426425"
+    status: "UNVERIFIED",
+    runs: null,
+    depth: null,
+    commit: null
   },
   {
     id: "INV-RESOLUTION-003",
@@ -399,24 +399,24 @@ const invariants = [
     sourceRule: "SR-RESOLUTION-003",
     classification: "DERIVED",
     foundryTest: "ResolutionInvariant.t.sol",
-    status: "PASS",
-    runs: 256,
-    depth: 32,
-    commit: "f426425"
+    status: "UNVERIFIED",
+    runs: null,
+    depth: null,
+    commit: null
   },
   {
     id: "INV-AUCTION-001",
-    name: "Single Auction Settlement",
+    name: "Dutch Supply Conservation",
     domain: "AUCTIONS",
-    formalProperty: "settleAuction(a) cannot execute more than once",
-    rationale: "Auctions are one-time settlement processes.",
+    formalProperty: "0 <= sold(a) <= supply(a); a failed purchase does not consume supply",
+    rationale: "Each successful purchase consumes one unit at its current price; no final clearing-price repricing.",
     sourceRule: "SR-AUCTION-002",
     classification: "DERIVED",
     foundryTest: "AuctionInvariant.t.sol",
-    status: "PASS",
-    runs: 256,
-    depth: 32,
-    commit: "f426425"
+    status: "UNVERIFIED",
+    runs: null,
+    depth: null,
+    commit: null
   },
   {
     id: "INV-POLICY-001",
@@ -427,10 +427,10 @@ const invariants = [
     sourceRule: "SR-POLICY-002",
     classification: "DERIVED",
     foundryTest: "PolicyInvariant.t.sol",
-    status: "PASS",
-    runs: 256,
-    depth: 32,
-    commit: "f426425"
+    status: "UNVERIFIED",
+    runs: null,
+    depth: null,
+    commit: null
   },
   {
     id: "INV-ACCOUNTING-001",
@@ -441,10 +441,10 @@ const invariants = [
     sourceRule: "SR-SUPPLY-001",
     classification: "DERIVED",
     foundryTest: "ProtocolInvariantTest::invariant_AccountingConservation",
-    status: "PASS",
-    runs: 256,
-    depth: 32,
-    commit: "f426425"
+    status: "UNVERIFIED",
+    runs: null,
+    depth: null,
+    commit: null
   }
 ];
 
@@ -506,20 +506,67 @@ const assumptions = [
   }
 ];
 
-// 4. Test Results Metadata
+specRules.push({
+  id: 'SR-AUCTION-002', domain: 'AUCTIONS', title: 'Dutch Purchase Supply',
+  summary: 'A successful purchase consumes one unit; failures preserve supply and earlier receipts are not repriced.',
+  classification: 'DERIVED', source: 'Whitepaper v0.1 §8', model: 'AuctionSpec.sol',
+  affectedInvariants: ['INV-AUCTION-001'], status: 'MODELED'
+});
+
+// This exporter writes authored reference data. It does not execute tests.
+const mappedTests = {
+  'INV-SUPPLY-001': 'invariant_SupplyHardCap',
+  'INV-ACCOUNTING-001': 'invariant_AccountingConservation',
+  'INV-RESOLUTION-001': 'invariant_FeeBounds',
+  'INV-CHARTER-002': 'invariant_CharterLifecycle'
+};
+for (const invariant of invariants) {
+  invariant.previousClassification = invariant.classification;
+  invariant.classification = 'NEEDS_REVIEW';
+  invariant.proposedFoundryTest = invariant.foundryTest;
+  invariant.foundryTest = mappedTests[invariant.id]
+    ? `test/invariant/ProtocolInvariant.t.sol::${mappedTests[invariant.id]}`
+    : null;
+  invariant.testCommand = mappedTests[invariant.id]
+    ? `forge test --match-path test/invariant/ProtocolInvariant.t.sol --match-test ${mappedTests[invariant.id]} -vvv`
+    : null;
+}
+// These historical rule mappings have not been reconciled with the launch design.
+for (const rule of specRules) {
+  rule.previousClassification = rule.classification;
+  rule.classification = 'NEEDS_REVIEW';
+  rule.reviewNote = 'Legacy model mapping. See research/LAUNCH_REVIEW.md for known differences.';
+}
+const reviewedRules = {
+  'SR-SUPPLY-002': ['§3 The currency', 'Published 1B cap / 100M genesis; fixtures can use other sizes.'],
+  'SR-CHARTER-002': ['§6 Charters; §9 Earning and withdrawing', 'Terminal last-branch burn is modeled.'],
+  'SR-AUCTION-002': ['§8 How the auctions work', 'Derived current-price purchase and supply accounting; tested in the independent Solidity fixture.'],
+  'SR-AUCTION-001': ['§7 Branches and expansion licenses; §8 How the auctions work', 'Dutch purchase semantics are modeled with a discrete fixture schedule, not the official exponential curve.']
+};
+for (const rule of specRules) {
+  if (reviewedRules[rule.id]) {
+    rule.classification = 'PUBLISHED_DESIGN';
+    rule.source = `https://www.standardreserve.xyz/whitepaper/ — v0.1 ${reviewedRules[rule.id][0]}`;
+    rule.reviewNote = reviewedRules[rule.id][1];
+  }
+}
 const testResults = {
-  timestamp: new Date().toISOString(),
-  commitSha: "f4264256",
-  solidityVersion: "0.8.24",
-  nodeVersion: process.version,
+  kind: 'UNVERIFIED_REFERENCE_DATA',
+  scope: 'Independent REFLEX model only',
+  timestamp: null,
+  commitSha: null,
+  solidityVersion: null,
+  nodeVersion: null,
   totalInvariants: invariants.length,
-  passingInvariants: invariants.filter(i => i.status === "PASS").length,
-  candidateInvariants: invariants.filter(i => i.status === "CANDIDATE").length,
-  blockedInvariants: invariants.filter(i => i.status === "BLOCKED").length,
-  fuzzRuns: 256,
-  maxSequenceDepth: 32,
-  suiteDurationMs: 296,
-  status: "ALL_PASSING"
+  passingInvariants: null,
+  unverifiedInvariants: invariants.length,
+  candidateInvariants: 0,
+  blockedInvariants: 0,
+  fuzzRuns: null,
+  maxSequenceDepth: null,
+  suiteDurationMs: null,
+  status: 'NOT_RUN',
+  note: 'Exporting authored data does not run Node or Foundry tests. No execution record is attached.'
 };
 
 // 5. Sample Forensic Traces
@@ -528,7 +575,7 @@ const sampleTrace01 = {
   name: "Nominal Charter Lifecycle & Branch Resolution Sequence",
   timestamp: "2026-09-01T14:30:00Z",
   seed: "0x5354414e444152445f3031",
-  verdict: "PASS",
+  verdict: "ILLUSTRATIVE",
   failureClassification: null,
   stepsCount: 6,
   steps: [
@@ -539,7 +586,7 @@ const sampleTrace01 = {
       preState: { circulating: "0", unminted: "0", remainingBudget: "100M", activeBranches: 0 },
       postState: { circulating: "10M", unminted: "0", remainingBudget: "90M", activeBranches: 0 },
       invariantsChecked: ["INV-SUPPLY-001", "INV-ACCOUNTING-001"],
-      status: "PASS"
+      status: "UNVERIFIED"
     },
     {
       stepIndex: 1,
@@ -548,7 +595,7 @@ const sampleTrace01 = {
       preState: { activeCharters: 0, activeBranches: 0 },
       postState: { activeCharters: 1, activeBranches: 0, charterStatus: "Active" },
       invariantsChecked: ["INV-CHARTER-001"],
-      status: "PASS"
+      status: "UNVERIFIED"
     },
     {
       stepIndex: 2,
@@ -557,7 +604,7 @@ const sampleTrace01 = {
       preState: { activeBranches: 0, charterBranches: 0 },
       postState: { activeBranches: 1, charterBranches: 1, branchStatus: "Active" },
       invariantsChecked: ["INV-BRANCH-001"],
-      status: "PASS"
+      status: "UNVERIFIED"
     },
     {
       stepIndex: 3,
@@ -566,16 +613,16 @@ const sampleTrace01 = {
       preState: { unminted: "0", remainingBudget: "90M", branchAccrual: "0" },
       postState: { unminted: "500K", remainingBudget: "89.5M", branchAccrual: "500K" },
       invariantsChecked: ["INV-ISSUANCE-001", "INV-ACCOUNTING-001"],
-      status: "PASS"
+      status: "UNVERIFIED"
     },
     {
       stepIndex: 4,
       action: "resolveBranch(branchId: 1)",
       caller: "0xAlice",
       preState: { activeBranches: 1, unminted: "500K", circulating: "10M" },
-      postState: { activeBranches: 0, unminted: "0", circulating: "10.5M", charterStatus: "Dormant" },
+      postState: { activeBranches: 0, unminted: "0", circulating: "10.5M", charterStatus: "Burned" },
       invariantsChecked: ["INV-BRANCH-002", "INV-BRANCH-003", "INV-CHARTER-002", "INV-ACCOUNTING-001"],
-      status: "PASS"
+      status: "UNVERIFIED"
     },
     {
       stepIndex: 5,
@@ -584,17 +631,17 @@ const sampleTrace01 = {
       preState: { circulating: "10.5M", unminted: "0", remainingBudget: "89.5M", burned: "0" },
       postState: { circulating: "10.5M", unminted: "0", remainingBudget: "89.5M", burned: "0" },
       invariantsChecked: ["INV-SUPPLY-001", "INV-ACCOUNTING-001"],
-      status: "PASS"
+      status: "UNVERIFIED"
     }
   ]
 };
 
 const sampleTrace02 = {
   traceId: "TRACE-002",
-  name: "Multi-Branch Capacity Exhaustion & Fuzz Interleaving",
+  name: "Illustrative Branch Capacity Sequence",
   timestamp: "2026-09-01T14:35:00Z",
   seed: "0x5354414e444152445f3032",
-  verdict: "PASS",
+  verdict: "ILLUSTRATIVE",
   failureClassification: null,
   stepsCount: 5,
   steps: [
@@ -605,7 +652,7 @@ const sampleTrace02 = {
       preState: { activeBranches: 0 },
       postState: { maxCapacity: 2, activeBranches: 0 },
       invariantsChecked: ["INV-CHARTER-001"],
-      status: "PASS"
+      status: "UNVERIFIED"
     },
     {
       stepIndex: 1,
@@ -614,7 +661,7 @@ const sampleTrace02 = {
       preState: { activeBranches: 0 },
       postState: { activeBranches: 1 },
       invariantsChecked: ["INV-BRANCH-001"],
-      status: "PASS"
+      status: "UNVERIFIED"
     },
     {
       stepIndex: 2,
@@ -623,7 +670,7 @@ const sampleTrace02 = {
       preState: { activeBranches: 1 },
       postState: { activeBranches: 2 },
       invariantsChecked: ["INV-BRANCH-001"],
-      status: "PASS"
+      status: "UNVERIFIED"
     },
     {
       stepIndex: 3,
@@ -632,7 +679,7 @@ const sampleTrace02 = {
       preState: { activeBranches: 2, maxCapacity: 2 },
       postState: { activeBranches: 2, reverted: true, reason: "Branch capacity exceeded" },
       invariantsChecked: ["INV-BRANCH-001"],
-      status: "PASS"
+      status: "UNVERIFIED"
     },
     {
       stepIndex: 4,
@@ -641,10 +688,19 @@ const sampleTrace02 = {
       preState: { maxCapacity: 2 },
       postState: { maxCapacity: 4 },
       invariantsChecked: ["INV-BRANCH-001"],
-      status: "PASS"
+      status: "UNVERIFIED"
     }
   ]
 };
+
+// Authored traces are teaching examples, not captured execution records.
+for (const trace of [sampleTrace01, sampleTrace02]) {
+  trace.kind = 'AUTHORED_EXAMPLE';
+  trace.note = 'Illustrative low-level fixture transitions. Setup uses custom capacity and supply and omits fees. No tests were executed to produce this trace.';
+  trace.timestamp = null;
+  trace.seed = null;
+  for (const step of trace.steps) step.status = 'NOT_EVALUATED';
+}
 
 // Write files
 fs.writeFileSync(path.join(GENERATED_DIR, 'spec-rules.json'), JSON.stringify(specRules, null, 2));

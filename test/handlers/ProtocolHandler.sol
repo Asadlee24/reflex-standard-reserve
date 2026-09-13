@@ -13,7 +13,7 @@ import {SpecTypes} from "../../src/spec/SpecTypes.sol";
  * @title ProtocolHandler
  * @notice Randomized state-transition handler for Foundry multi-action invariant testing.
  * @author Asad Lee (https://github.com/Asadlee24)
- * @dev Explores complex interleavings: createCharter -> openBranch -> accrue -> resolve -> advanceEpoch -> settleAuction.
+ * @dev Explores complex interleavings: createCharter -> openBranch -> accrue -> resolve.
  */
 contract ProtocolHandler {
     StandardSpec public immutable standardToken;
@@ -45,9 +45,10 @@ contract ProtocolHandler {
 
     function createCharter(uint256 capacitySeed) external returns (uint256 charterId) {
         sequenceCallCount++;
-        uint256 capacity = 1 + (capacitySeed % 10);
+        capacitySeed; // Retained as a fuzz input; every entry starts with one branch.
         address owner = address(uint160(0x1000 + sequenceCallCount));
-        charterId = charterContract.createCharter(owner, capacity);
+        charterId = branchContract.createCharter(owner, policyContract.currentEpoch());
+        activeBranchIds.push(branchContract.nextBranchId() - 1);
         activeCharterIds.push(charterId);
     }
 
@@ -56,9 +57,10 @@ contract ProtocolHandler {
         sequenceCallCount++;
         uint256 charterId = activeCharterIds[charterIndexSeed % activeCharterIds.length];
         SpecTypes.Charter memory c = charterContract.getCharter(charterId);
-        if (c.status != SpecTypes.CharterStatus.Active || c.activeBranches >= c.maxBranches) {
+        if (c.status != SpecTypes.CharterStatus.Active || c.maxBranches >= 10) {
             return 0;
         }
+        charterContract.expandCapacity(charterId, 1);
         branchId = branchContract.openBranch(charterId, policyContract.currentEpoch());
         activeBranchIds.push(branchId);
     }
