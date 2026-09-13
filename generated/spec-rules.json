@@ -19,16 +19,16 @@
     "id": "SR-SUPPLY-002",
     "domain": "SUPPLY",
     "title": "Genesis Allocation",
-    "summary": "Fixed initial supply minted at protocol genesis for initial liquidity and founding charters.",
-    "classification": "NEEDS_REVIEW",
-    "source": "Official Whitepaper v1 §1.2",
+    "summary": "100 million STANDARD is preminted as protocol-owned liquidity; the hard cap is 1 billion.",
+    "classification": "PUBLISHED_DESIGN",
+    "source": "https://www.standardreserve.xyz/whitepaper/ — v0.1 §3 The currency",
     "model": "StandardSpec.sol",
     "affectedInvariants": [
       "INV-ACCOUNTING-001"
     ],
     "status": "MODELED",
     "previousClassification": "CONFIRMED",
-    "reviewNote": "Legacy model mapping. See research/LAUNCH_REVIEW.md for known differences."
+    "reviewNote": "Published 1B cap / 100M genesis; fixtures can use other sizes."
   },
   {
     "id": "SR-SUPPLY-003",
@@ -110,9 +110,9 @@
     "id": "SR-CHARTER-002",
     "domain": "CHARTERS",
     "title": "Charter Lifecycle Transitions",
-    "summary": "Charters transition from Active -> Dormant -> Burned upon final branch exit or destruction.",
-    "classification": "NEEDS_REVIEW",
-    "source": "Official Whitepaper v1 §2.4",
+    "summary": "Retiring the last branch burns the Charter permanently. Re-entry requires a new Charter.",
+    "classification": "PUBLISHED_DESIGN",
+    "source": "https://www.standardreserve.xyz/whitepaper/ — v0.1 §6 Charters; §9 Earning and withdrawing",
     "model": "CharterSpec.sol",
     "affectedInvariants": [
       "INV-CHARTER-001",
@@ -120,7 +120,7 @@
     ],
     "status": "MODELED",
     "previousClassification": "DERIVED",
-    "reviewNote": "Legacy model mapping. See research/LAUNCH_REVIEW.md for known differences."
+    "reviewNote": "Terminal last-branch burn is modeled."
   },
   {
     "id": "SR-BRANCH-001",
@@ -263,16 +263,16 @@
     "id": "SR-AUCTION-001",
     "domain": "AUCTIONS",
     "title": "Expansion Licence Auctions",
-    "summary": "New Branch expansion licences are sold via competitive protocol auctions.",
-    "classification": "NEEDS_REVIEW",
-    "source": "Official Whitepaper v1 §5.1",
+    "summary": "Daily Dutch purchases execute immediately at the current falling price. Licence payments burn STANDARD.",
+    "classification": "PUBLISHED_DESIGN",
+    "source": "https://www.standardreserve.xyz/whitepaper/ — v0.1 §7 Branches and expansion licenses; §8 How the auctions work",
     "model": "AuctionSpec.sol",
     "affectedInvariants": [
       "INV-AUCTION-001"
     ],
     "status": "MODELED",
     "previousClassification": "CONFIRMED",
-    "reviewNote": "Legacy model mapping. See research/LAUNCH_REVIEW.md for known differences."
+    "reviewNote": "Dutch purchase semantics are modeled with a discrete fixture schedule, not the official exponential curve."
   },
   {
     "id": "SR-VAULT-001",
@@ -288,5 +288,20 @@
     "status": "MODELED",
     "previousClassification": "CONFIRMED",
     "reviewNote": "Legacy model mapping. See research/LAUNCH_REVIEW.md for known differences."
+  },
+  {
+    "id": "SR-AUCTION-002",
+    "domain": "AUCTIONS",
+    "title": "Dutch Purchase Supply",
+    "summary": "A successful purchase consumes one unit; failures preserve supply and earlier receipts are not repriced.",
+    "classification": "PUBLISHED_DESIGN",
+    "source": "https://www.standardreserve.xyz/whitepaper/ — v0.1 §8 How the auctions work",
+    "model": "AuctionSpec.sol",
+    "affectedInvariants": [
+      "INV-AUCTION-001"
+    ],
+    "status": "MODELED",
+    "previousClassification": "DERIVED",
+    "reviewNote": "Derived current-price purchase and supply accounting; tested in the independent Solidity fixture."
   }
 ]

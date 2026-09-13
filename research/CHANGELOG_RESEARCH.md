@@ -23,3 +23,7 @@ Removed unsubstantiated success metadata and embedded fallback results. Labeled 
 - Initial REFLEX exit-contagion feedback model exploring trailing exit pressure, quadratic fee response, and multi-round participant sensitivity.
 - Parameter sweeps across contagion and fee deterrence.
 - 3D mechanism visualizer and CSV/JSON reporting.
+
+## 2026-09-13: launch model correction
+
+Replaced highest-bid auction settlement with explicit-schedule Dutch purchases. Corrected terminal Charter burn, first-branch entry, capacity consumption, ten-branch bounds, published supply defaults and zero-flow contraction. Node tests now use the actual browser engine. Added focused Solidity tests and explicit handler targeting. Reconciled affected source rows and examples; retained unknown/illustrative labels for unimplemented official behavior. Execution evidence is recorded separately from authored registry data.

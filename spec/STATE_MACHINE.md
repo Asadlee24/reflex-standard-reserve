@@ -1,130 +1,32 @@
-# Formal State Machine Specification
+# REFLEX reference state machines
 
-> Legacy model states with known differences from the published launch design. See [Launch review](../research/LAUNCH_REVIEW.md).
+These are research abstractions. See [launch review](../research/LAUNCH_REVIEW.md) for source mappings and omitted economics.
 
-**REFLEX SpecLab — The Standard Reserve**  
-*Curated by Asad Lee (GitHub: [@Asadlee24](https://github.com/Asadlee24))*
+## Charter and Branch
 
-This specification defines the formal entity state machines, valid transitions, preconditions, accounting mutations, and invariant postconditions for The Standard Reserve protocol reference model.
+High-level creation includes a first active branch. Solidity `CharterSpec.createCharter` is a low-level setup primitive; `BranchSpec.createCharter` composes creation with branch activation atomically.
 
----
+A Charter remains Active while branches remain. Retiring a branch consumes its allocated capacity. Retiring the last branch changes the Charter directly to Burned. Burned Charters cannot expand or open branches; re-entry creates a new Charter. No Dormant reactivation is modeled. This is distinct from the whitepaper's inactive-wallet/dormant-banker procedure, which is not implemented here.
 
-## 1. Protocol Architecture & Domains
+A Branch transitions from Active to Resolved exactly once. Accrual cannot be added after resolution. Gross internal accrual becomes a simulated token balance on retirement. Integrated resolution fees are outside this fixture.
 
-```mermaid
-stateDiagram-v2
-    [*] --> Genesis : Protocol Initialization
-    Genesis --> Active : Seed Liquidity & Founding Charters
-    
-    state Active {
-        [*] --> ExpansionRegime : Net Positive Flow
-        [*] --> ContractionRegime : Net Negative Flow
-        
-        ExpansionRegime --> ContractionRegime : Epoch Flow Inversion
-        ContractionRegime --> ExpansionRegime : Epoch Flow Recovery
-    }
-```
+| Action | Preconditions | Result |
+| --- | --- | --- |
+| Create Charter | Valid owner | One active branch and one allocated capacity unit |
+| Allocate licence fixture | Active Charter; capacity below ten | One additional capacity unit |
+| Open Branch | Active Charter; unused allocated capacity | One new active branch |
+| Retire Branch | Active Branch | Resolve once; decrease active count and capacity; burn Charter if final branch |
+| Accrue | Active Branch; nonnegative amount within remaining budget | Budget moves into unminted accrual |
+| Burn | Nonnegative amount within simulated balance | Circulation falls; issuance budget does not replenish |
 
----
+## Dutch auction
 
-## 2. Entity State Machines
+The explicit time/price schedule must start at offset zero, have strictly increasing offsets before expiry, and positive non-increasing prices. The model does not invent official curve parameters.
 
-### 2.1 Charter Lifecycle (`CharterSpec`)
+Purchases are allowed during `[startsAt, startsAt + duration)` while supply remains. A successful purchase charges the current price, consumes one unit and immediately delivers a Charter with its first branch or a paid licence branch. Licence payments burn STANDARD; Charter payments debit a simulated ETH ledger.
 
-A Charter represents the institutional entity authorized to operate one or more operational Branches.
+A buyer's maximum price is a spending limit, not a bid. There is no highest bidder, later settlement or final clearing-price rebate. A failed purchase rolls back balances, supply and delivered state. Unsold expired units do not carry into another auction. See unit tests for boundary and failure cases.
 
-```mermaid
-stateDiagram-v2
-    [*] --> NonExistent
-    NonExistent --> Active : mintCharter() / genesis()
-    Active --> Dormant : all branches resolved
-    Dormant --> Active : openBranch() with Licence
-    Dormant --> Burned : destroyCharter()
-    Burned --> [*]
-```
+## Policy
 
-#### Transitions:
-
-1. **`mintCharter(address owner, uint256 initialBranchCapacity)`**
-   - **Preconditions:** Caller is authorized auction settlement or genesis allocator; `charters[id].status == NonExistent`.
-   - **State Changes:** `status = Active`, `owner = owner`, `maxBranches = initialBranchCapacity`, `activeBranches = 0`.
-   - **Accounting Effect:** None (or auction settlement fee transferred to Vault).
-   - **Postconditions:** `charters[id].status == Active`.
-   - **Source Rule:** `SR-CHARTER-001`.
-
-2. **`openBranch(uint256 charterId)`**
-   - **Preconditions:** `charter.status == Active`, `charter.activeBranches < charter.maxBranches`.
-   - **State Changes:** `charter.activeBranches += 1`, new `Branch` instance instantiated in `Active` status.
-   - **Accounting Effect:** Expansion licence burned if beyond initial capacity.
-   - **Postconditions:** `charter.activeBranches <= charter.maxBranches`.
-   - **Source Rule:** `SR-BRANCH-001`, `SR-BRANCH-002`.
-
-3. **`resolveBranch(uint256 charterId, uint256 branchId)`**
-   - **Preconditions:** `branch.status == Active`, `charter.activeBranches > 0`.
-   - **State Changes:** `branch.status = Resolved`, `charter.activeBranches -= 1`. If `charter.activeBranches == 0`, `charter.status = Dormant`.
-   - **Accounting Effect:** Accrued issuance realized minus Resolution Fee; 50% burned, 50% redistributed to remaining active branches.
-   - **Postconditions:** `branch.status == Resolved`, `charter.activeBranches >= 0`.
-   - **Source Rule:** `SR-BRANCH-003`, `SR-RESOLUTION-003`.
-
----
-
-### 2.2 Branch Lifecycle (`BranchSpec`)
-
-```mermaid
-stateDiagram-v2
-    [*] --> NonExistent
-    NonExistent --> Active : openBranch()
-    Active --> Resolving : initiateResolution()
-    Resolving --> Resolved : completeResolution()
-    Resolved --> [*]
-```
-
-#### Transitions:
-
-1. **`accrueIssuance(uint256 branchId, uint256 amount)`**
-   - **Preconditions:** `branch.status == Active`, `remainingIssuanceBudget >= amount`.
-   - **State Changes:** `branch.accruedIssuance += amount`, `totalUnmintedAccrual += amount`, `remainingIssuanceBudget -= amount`.
-   - **Accounting Effect:** Ledger credit registered without inflating circulating supply.
-   - **Postconditions:** `branch.accruedIssuance <= totalUnmintedAccrual`.
-   - **Source Rule:** `SR-ISSUANCE-001`.
-
-2. **`withdrawAccrued(uint256 branchId, uint256 amount)`**
-   - **Preconditions:** `branch.status == Active`, `branch.accruedIssuance >= amount`.
-   - **State Changes:** `branch.accruedIssuance -= amount`, `branch.totalRealized += amount`, `circulatingSupply += amount`.
-   - **Accounting Effect:** ERC20 token minted to Banker address.
-   - **Postconditions:** `circulatingSupply + totalUnmintedAccrual <= maxSupply`.
-   - **Source Rule:** `SR-ISSUANCE-002`, `SR-SUPPLY-001`.
-
----
-
-### 2.3 Policy Engine & Monetary Regimes (`PolicySpec`)
-
-```mermaid
-stateDiagram-v2
-    [*] --> Expansion : Net Flow > 0
-    Expansion --> Contraction : Net Flow < 0 & Cooldown Expired
-    Contraction --> Expansion : Net Flow > 0 & Cooldown Expired
-```
-
-#### Transitions:
-
-1. **`advanceEpoch(int256 netEthFlow)`**
-   - **Preconditions:** `block.timestamp >= lastEpochTimestamp + epochDuration`.
-   - **State Changes:** `currentEpoch += 1`, `lastEpochTimestamp = block.timestamp`.
-   - **Accounting Effect:** If `netEthFlow >= 0`, `regime = Expansion`, policy multiplier adjusted according to demand envelope. If `netEthFlow < 0`, `regime = Contraction`, buffer reserves activated.
-   - **Postconditions:** Policy multiplier stays within `[minMultiplier, maxMultiplier]`.
-   - **Source Rule:** `SR-POLICY-001`, `SR-POLICY-002`, `SR-POLICY-003`.
-
----
-
-### 2.4 Resolution Module (`ResolutionSpec`)
-
-1. **`computeResolutionFee(uint256 trailingWithdrawals, uint256 remainingHeldValue)`**
-   - **Formula:** $P = \frac{W}{\max(D + W, \epsilon)}$, $F(P) = F_{min} + (F_{max} - F_{min}) \cdot \min(1, \frac{P}{S})^2$.
-   - **Postconditions:** $F(P) \in [F_{min}, F_{max}]$.
-   - **Source Rule:** `SR-RESOLUTION-001`, `SR-RESOLUTION-002`.
-
-2. **`distributeResolutionFee(uint256 grossFee)`**
-   - **Split:** $\text{burned} = \lfloor \text{grossFee} / 2 \rfloor$, $\text{redistributed} = \text{grossFee} - \text{burned}$.
-   - **Postconditions:** $\text{burned} + \text{redistributed} == \text{grossFee}$.
-   - **Source Rule:** `SR-RESOLUTION-003`.
+Positive current flow is Expansion; negative or zero current flow is Contraction. This describes the fixture's regime classification. It does not reproduce the official trailing-epoch issuance algorithm. Multiplier values in PolicySpec remain explicitly illustrative.

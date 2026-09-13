@@ -24,7 +24,7 @@ const specRules = [
     id: "SR-SUPPLY-002",
     domain: "SUPPLY",
     title: "Genesis Allocation",
-    summary: "Fixed initial supply minted at protocol genesis for initial liquidity and founding charters.",
+    summary: "100 million STANDARD is preminted as protocol-owned liquidity; the hard cap is 1 billion.",
     classification: "CONFIRMED",
     source: "Official Whitepaper v1 §1.2",
     model: "StandardSpec.sol",
@@ -90,7 +90,7 @@ const specRules = [
     id: "SR-CHARTER-002",
     domain: "CHARTERS",
     title: "Charter Lifecycle Transitions",
-    summary: "Charters transition from Active -> Dormant -> Burned upon final branch exit or destruction.",
+    summary: "Retiring the last branch burns the Charter permanently. Re-entry requires a new Charter.",
     classification: "DERIVED",
     source: "Official Whitepaper v1 §2.4",
     model: "CharterSpec.sol",
@@ -200,7 +200,7 @@ const specRules = [
     id: "SR-AUCTION-001",
     domain: "AUCTIONS",
     title: "Expansion Licence Auctions",
-    summary: "New Branch expansion licences are sold via competitive protocol auctions.",
+    summary: "Daily Dutch purchases execute immediately at the current falling price. Licence payments burn STANDARD.",
     classification: "CONFIRMED",
     source: "Official Whitepaper v1 §5.1",
     model: "AuctionSpec.sol",
@@ -322,10 +322,10 @@ const invariants = [
   },
   {
     id: "INV-CHARTER-002",
-    name: "Charter Dormancy on Branch Exhaustion",
+    name: "Terminal Charter Burn on Last Exit",
     domain: "CHARTERS",
-    formalProperty: "activeBranches(c) == 0 => c.status in {Dormant, Burned}",
-    rationale: "A Charter with no active operational branches enters dormant status.",
+    formalProperty: "previouslyOpened(c) && activeBranches(c) == 0 => c.status == Burned",
+    rationale: "A previously opened Charter burns when its last branch is retired.",
     sourceRule: "SR-CHARTER-002",
     classification: "DERIVED",
     foundryTest: "CharterInvariant.t.sol",
@@ -406,10 +406,10 @@ const invariants = [
   },
   {
     id: "INV-AUCTION-001",
-    name: "Single Auction Settlement",
+    name: "Dutch Supply Conservation",
     domain: "AUCTIONS",
-    formalProperty: "settleAuction(a) cannot execute more than once",
-    rationale: "Auctions are one-time settlement processes.",
+    formalProperty: "0 <= sold(a) <= supply(a); a failed purchase does not consume supply",
+    rationale: "Each successful purchase consumes one unit at its current price; no final clearing-price repricing.",
     sourceRule: "SR-AUCTION-002",
     classification: "DERIVED",
     foundryTest: "AuctionInvariant.t.sol",
@@ -506,11 +506,19 @@ const assumptions = [
   }
 ];
 
+specRules.push({
+  id: 'SR-AUCTION-002', domain: 'AUCTIONS', title: 'Dutch Purchase Supply',
+  summary: 'A successful purchase consumes one unit; failures preserve supply and earlier receipts are not repriced.',
+  classification: 'DERIVED', source: 'Whitepaper v0.1 §8', model: 'AuctionSpec.sol',
+  affectedInvariants: ['INV-AUCTION-001'], status: 'MODELED'
+});
+
 // This exporter writes authored reference data. It does not execute tests.
 const mappedTests = {
   'INV-SUPPLY-001': 'invariant_SupplyHardCap',
   'INV-ACCOUNTING-001': 'invariant_AccountingConservation',
-  'INV-RESOLUTION-001': 'invariant_FeeBounds'
+  'INV-RESOLUTION-001': 'invariant_FeeBounds',
+  'INV-CHARTER-002': 'invariant_CharterLifecycle'
 };
 for (const invariant of invariants) {
   invariant.previousClassification = invariant.classification;
@@ -528,6 +536,19 @@ for (const rule of specRules) {
   rule.previousClassification = rule.classification;
   rule.classification = 'NEEDS_REVIEW';
   rule.reviewNote = 'Legacy model mapping. See research/LAUNCH_REVIEW.md for known differences.';
+}
+const reviewedRules = {
+  'SR-SUPPLY-002': ['§3 The currency', 'Published 1B cap / 100M genesis; fixtures can use other sizes.'],
+  'SR-CHARTER-002': ['§6 Charters; §9 Earning and withdrawing', 'Terminal last-branch burn is modeled.'],
+  'SR-AUCTION-002': ['§8 How the auctions work', 'Derived current-price purchase and supply accounting; tested in the independent Solidity fixture.'],
+  'SR-AUCTION-001': ['§7 Branches and expansion licenses; §8 How the auctions work', 'Dutch purchase semantics are modeled with a discrete fixture schedule, not the official exponential curve.']
+};
+for (const rule of specRules) {
+  if (reviewedRules[rule.id]) {
+    rule.classification = 'PUBLISHED_DESIGN';
+    rule.source = `https://www.standardreserve.xyz/whitepaper/ — v0.1 ${reviewedRules[rule.id][0]}`;
+    rule.reviewNote = reviewedRules[rule.id][1];
+  }
 }
 const testResults = {
   kind: 'UNVERIFIED_REFERENCE_DATA',
@@ -599,7 +620,7 @@ const sampleTrace01 = {
       action: "resolveBranch(branchId: 1)",
       caller: "0xAlice",
       preState: { activeBranches: 1, unminted: "500K", circulating: "10M" },
-      postState: { activeBranches: 0, unminted: "0", circulating: "10.5M", charterStatus: "Dormant" },
+      postState: { activeBranches: 0, unminted: "0", circulating: "10.5M", charterStatus: "Burned" },
       invariantsChecked: ["INV-BRANCH-002", "INV-BRANCH-003", "INV-CHARTER-002", "INV-ACCOUNTING-001"],
       status: "UNVERIFIED"
     },
@@ -675,7 +696,7 @@ const sampleTrace02 = {
 // Authored traces are teaching examples, not captured execution records.
 for (const trace of [sampleTrace01, sampleTrace02]) {
   trace.kind = 'AUTHORED_EXAMPLE';
-  trace.note = 'Illustrative state transitions from the legacy model. No tests were executed to produce this trace.';
+  trace.note = 'Illustrative low-level fixture transitions. Setup uses custom capacity and supply and omits fees. No tests were executed to produce this trace.';
   trace.timestamp = null;
   trace.seed = null;
   for (const step of trace.steps) step.status = 'NOT_EVALUATED';

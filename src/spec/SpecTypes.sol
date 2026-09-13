@@ -5,13 +5,12 @@ pragma solidity 0.8.24;
  * @title SpecTypes
  * @notice Shared types, enums, and data structures for REFLEX SpecLab reference specification.
  * @author Asad Lee (https://github.com/Asadlee24)
- * @dev Modeled strictly from Standard Reserve Whitepaper v1 and primary source disclosures.
+ * @dev Independent research types; see research/LAUNCH_REVIEW.md for abstractions.
  */
 library SpecTypes {
     enum CharterStatus {
         NonExistent,
         Active,
-        Dormant,
         Burned
     }
 

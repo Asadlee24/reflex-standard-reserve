@@ -56,4 +56,19 @@ contract ProtocolInvariantTest is SpecHelper {
         require(fee50 >= 0.02e18 && fee50 <= 0.40e18, "INV-RESOLUTION-001: Midpoint violated");
         require(fee100 <= 0.40e18, "INV-RESOLUTION-001: Ceiling violated");
     }
+    // Foundry's supported target discovery keeps random calls on the stateful
+    // handler instead of permissionless low-level fixture setters.
+    function targetContracts() public view returns (address[] memory targets) {
+        targets = new address[](1);
+        targets[0] = address(handler);
+    }
+
+    function invariant_CharterLifecycle() public view {
+        for (uint256 id = 1; id < charterContract.nextCharterId(); ++id) {
+            SpecTypes.Charter memory c = charterContract.getCharter(id);
+            require(c.activeBranches <= c.maxBranches && c.maxBranches <= 10, "Branch cap");
+            if (c.activeBranches == 0) require(c.status == SpecTypes.CharterStatus.Burned, "Last exit must burn");
+            else require(c.status == SpecTypes.CharterStatus.Active, "Live branches require active Charter");
+        }
+    }
 }

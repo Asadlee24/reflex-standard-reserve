@@ -16,8 +16,8 @@ import {SpecTypes} from "../../src/spec/SpecTypes.sol";
  * @author Asad Lee (https://github.com/Asadlee24)
  */
 contract SpecHelper {
-    uint256 public constant MAX_SUPPLY = 100_000_000 * 1e18; // 100M $STANDARD
-    uint256 public constant GENESIS_SUPPLY = 10_000_000 * 1e18; // 10M $STANDARD
+    uint256 public constant MAX_SUPPLY = 1_000_000_000 * 1e18; // 1B $STANDARD
+    uint256 public constant GENESIS_SUPPLY = 100_000_000 * 1e18; // 100M $STANDARD
 
     StandardSpec public standardToken;
     CharterSpec public charterContract;
@@ -37,7 +37,7 @@ contract SpecHelper {
         branchContract = new BranchSpec(address(charterContract), address(standardToken));
         resolutionContract = new ResolutionSpec(address(standardToken), 0.02e18, 0.40e18, 0.50e18);
         policyContract = new PolicySpec(86400);
-        auctionContract = new AuctionSpec(address(standardToken), address(charterContract));
+        auctionContract = new AuctionSpec(address(standardToken), address(charterContract), address(branchContract));
         vaultContract = new VaultSpec();
     }
 }

@@ -13,13 +13,13 @@ No execution record is attached. Three entries map to functions present in `test
 | `INV-BRANCH-002` | BRANCHES | `forall b in Branches, b.status == Resolved => delta accrual(b) == 0` | None | UNVERIFIED |
 | `INV-BRANCH-003` | BRANCHES | `resolveBranch(b) can execute at most once per branch instance` | None | UNVERIFIED |
 | `INV-CHARTER-001` | CHARTERS | `c.status == Burned => openBranch(c) reverts` | None | UNVERIFIED |
-| `INV-CHARTER-002` | CHARTERS | `activeBranches(c) == 0 => c.status in {Dormant, Burned}` | None | UNVERIFIED |
+| `INV-CHARTER-002` | CHARTERS | `previouslyOpened(c) && activeBranches(c) == 0 => c.status == Burned` | None | UNVERIFIED |
 | `INV-ISSUANCE-001` | ISSUANCE | `sum(branches.accrued) == totalUnmintedAccrual` | None | UNVERIFIED |
 | `INV-ISSUANCE-002` | ISSUANCE | `withdrawn(b) <= accrued(b)` | None | UNVERIFIED |
 | `INV-RESOLUTION-001` | RESOLUTION | `forall P in [0, 1], feeFloor <= resolutionFee(P) <= feeCeiling` | `test/invariant/ProtocolInvariant.t.sol::invariant_FeeBounds` | UNVERIFIED |
 | `INV-RESOLUTION-002` | RESOLUTION | `burnedFee + redistributedFee == grossFee` | None | UNVERIFIED |
 | `INV-RESOLUTION-003` | RESOLUTION | `delta circulatingSupply <= 0 during fee distribution` | None | UNVERIFIED |
-| `INV-AUCTION-001` | AUCTIONS | `settleAuction(a) cannot execute more than once` | None | UNVERIFIED |
+| `INV-AUCTION-001` | AUCTIONS | `sold(a) <= supply(a); failed purchases preserve state` | None | UNVERIFIED |
 | `INV-POLICY-001` | POLICY | `policyMultiplier in [MIN_MULTIPLIER, MAX_MULTIPLIER]` | None | UNVERIFIED |
 | `INV-ACCOUNTING-001` | ACCOUNTING | `circulatingSupply + totalBurned + totalUnmintedAccrual + remainingIssuanceBudget == MAX_SUPPLY` | `test/invariant/ProtocolInvariant.t.sol::invariant_AccountingConservation` | UNVERIFIED |
 

@@ -1,132 +1,82 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { LiveSpecEngine } from '../lib/spec-engine.js';
 
-// SpecLab Reference State Machine & Invariant Tests in JavaScript for direct Node runner validation
-class StandardReferenceSpec {
-  constructor(maxSupply = 100_000_000, genesisSupply = 10_000_000) {
-    this.maxSupply = maxSupply;
-    this.circulatingSupply = genesisSupply;
-    this.totalUnmintedAccrual = 0;
-    this.totalBurned = 0;
-    this.remainingIssuanceBudget = maxSupply - genesisSupply;
-    this.charters = new Map();
-    this.branches = new Map();
-    this.nextCharterId = 1;
-    this.nextBranchId = 1;
-  }
-
-  createCharter(owner, maxBranches = 5) {
-    const id = this.nextCharterId++;
-    this.charters.set(id, { id, owner, status: 'Active', maxBranches, activeBranches: 0 });
-    return id;
-  }
-
-  openBranch(charterId) {
-    const charter = this.charters.get(charterId);
-    if (!charter || charter.status !== 'Active') throw new Error('Invalid charter');
-    if (charter.activeBranches >= charter.maxBranches) throw new Error('Branch capacity exceeded');
-    charter.activeBranches += 1;
-    const branchId = this.nextBranchId++;
-    this.branches.set(branchId, { id: branchId, charterId, status: 'Active', accrued: 0, realized: 0 });
-    return branchId;
-  }
-
-  accrueIssuance(branchId, amount) {
-    const branch = this.branches.get(branchId);
-    if (!branch || branch.status !== 'Active') throw new Error('Invalid branch');
-    if (amount > this.remainingIssuanceBudget) throw new Error('Budget exceeded');
-    this.remainingIssuanceBudget -= amount;
-    this.totalUnmintedAccrual += amount;
-    branch.accrued += amount;
-  }
-
-  resolveBranch(branchId) {
-    const branch = this.branches.get(branchId);
-    if (!branch) throw new Error('Branch not found');
-    if (branch.status === 'Resolved') throw new Error('Branch already resolved');
-    if (branch.status !== 'Active') throw new Error('Branch not active');
-
-    branch.status = 'Resolved';
-    const charter = this.charters.get(branch.charterId);
-    charter.activeBranches -= 1;
-    if (charter.activeBranches === 0) charter.status = 'Dormant';
-
-    const realized = branch.accrued;
-    this.totalUnmintedAccrual -= realized;
-    this.circulatingSupply += realized;
-    branch.realized += realized;
-    branch.accrued = 0;
-    return realized;
-  }
-
-  burn(amount) {
-    if (amount > this.circulatingSupply) throw new Error('Insufficient balance');
-    this.circulatingSupply -= amount;
-    this.totalBurned += amount;
-  }
-
-  verifyAccountingEquation() {
-    return (this.circulatingSupply + this.totalBurned + this.totalUnmintedAccrual + this.remainingIssuanceBudget) === this.maxSupply;
-  }
-}
-
-test('INV-SUPPLY-001: supply hard cap cannot be exceeded under accrual or minting', () => {
-  const spec = new StandardReferenceSpec(100, 10);
-  const cId = spec.createCharter('0xAlice', 3);
-  const bId = spec.openBranch(cId);
-
-  spec.accrueIssuance(bId, 90);
-  assert.equal(spec.totalUnmintedAccrual, 90);
-  assert.equal(spec.remainingIssuanceBudget, 0);
-
-  // Attempting further accrual must throw
-  assert.throws(() => spec.accrueIssuance(bId, 1), /Budget exceeded/);
-
-  // Resolving branch mints accrual into circulating supply
-  spec.resolveBranch(bId);
-  assert.equal(spec.circulatingSupply, 100);
-  assert.equal(spec.totalUnmintedAccrual, 0);
-  assert.ok(spec.circulatingSupply <= spec.maxSupply);
+test('published supply defaults and first branch are present at Charter creation', () => {
+  const s = new LiveSpecEngine();
+  assert.equal(s.maxSupply, 1_000_000_000);
+  assert.equal(s.circulatingSupply, 100_000_000);
+  assert.equal(s.remainingIssuanceBudget, 900_000_000);
+  const c = s.createCharter('Alice');
+  assert.equal(c.activeBranches, 1);
+  assert.equal(s.branches[0].charterId, c.id);
+  assert.ok(Object.values(s.evaluateInvariants()).every(v => v === 'PASS'));
 });
-
-test('INV-BRANCH-001: active branches cannot exceed charter capacity', () => {
-  const spec = new StandardReferenceSpec(100, 10);
-  const cId = spec.createCharter('0xAlice', 2);
-  spec.openBranch(cId);
-  spec.openBranch(cId);
-  assert.throws(() => spec.openBranch(cId), /Branch capacity exceeded/);
+test('budget cannot be exceeded and burns do not replenish issuance', () => {
+  const s = new LiveSpecEngine(100, 10);
+  s.createCharter('Alice');
+  s.accrueIssuance(1, 90);
+  assert.throws(() => s.accrueIssuance(1, 1), /budget exceeded/i);
+  s.resolveBranch(1);
+  assert.equal(s.circulatingSupply, 100);
+  s.burnTokens(20);
+  s.createCharter('Bob');
+  assert.throws(() => s.accrueIssuance(2, 1), /budget exceeded/i);
+  assert.equal(s.evaluateInvariants()['INV-ACCOUNTING-001'], 'PASS');
 });
-
-test('INV-BRANCH-003: a branch cannot be resolved twice', () => {
-  const spec = new StandardReferenceSpec(100, 10);
-  const cId = spec.createCharter('0xAlice', 2);
-  const bId = spec.openBranch(cId);
-  spec.resolveBranch(bId);
-  assert.throws(() => spec.resolveBranch(bId), /Branch already resolved/);
+test('partial retirement consumes capacity; last exit burns permanently', () => {
+  const s = new LiveSpecEngine();
+  const c = s.createCharter('Alice');
+  s.expandCapacity(c.id);
+  s.openBranch(c.id);
+  s.accrueIssuance(1, 100);
+  s.accrueIssuance(2, 200);
+  assert.equal(s.resolveBranch(1), 100);
+  assert.equal(c.status, 'Active');
+  assert.equal(c.maxBranches, 1);
+  assert.throws(() => s.openBranch(c.id), /capacity/);
+  assert.equal(s.resolveBranch(2), 200);
+  assert.equal(c.status, 'Burned');
+  assert.throws(() => s.openBranch(c.id), /Inactive/);
+  assert.throws(() => s.expandCapacity(c.id), /Inactive/);
+  assert.throws(() => s.resolveBranch(2), /already resolved/);
+  assert.throws(() => s.accrueIssuance(2, 1), /not active/);
+  assert.ok(Object.values(s.evaluateInvariants()).every(v => v === 'PASS'));
 });
-
-test('INV-ACCOUNTING-001: accounting conservation holds across complex action sequences', () => {
-  const spec = new StandardReferenceSpec(10_000_000, 1_000_000);
-  const c1 = spec.createCharter('0xAlice', 5);
-  const c2 = spec.createCharter('0xBob', 5);
-
-  const b1 = spec.openBranch(c1);
-  const b2 = spec.openBranch(c1);
-  const b3 = spec.openBranch(c2);
-
-  spec.accrueIssuance(b1, 500_000);
-  spec.accrueIssuance(b2, 300_000);
-  spec.accrueIssuance(b3, 200_000);
-
-  assert.ok(spec.verifyAccountingEquation());
-
-  spec.resolveBranch(b1);
-  assert.ok(spec.verifyAccountingEquation());
-
-  spec.burn(200_000);
-  assert.ok(spec.verifyAccountingEquation());
-
-  spec.resolveBranch(b2);
-  spec.resolveBranch(b3);
-  assert.ok(spec.verifyAccountingEquation());
+test('a Charter cannot exceed ten branches', () => {
+  const s = new LiveSpecEngine();
+  const c = s.createCharter('Alice');
+  s.expandCapacity(c.id, 9);
+  for (let i = 1; i < 10; i++) s.openBranch(c.id);
+  assert.throws(() => s.openBranch(c.id), /capacity/);
+  assert.throws(() => s.expandCapacity(c.id), /exceeds 10/);
+  assert.equal(c.activeBranches, 10);
+});
+test('invalid numeric inputs cannot mutate accounting', () => {
+  const s = new LiveSpecEngine(100, 10);
+  s.createCharter('Alice');
+  const before = JSON.stringify(s.getStateSnapshot());
+  for (const value of [-1, NaN, Infinity, 0.1, Number.MAX_SAFE_INTEGER + 1]) {
+    assert.throws(() => s.accrueIssuance(1, value));
+    assert.throws(() => s.burnTokens(value));
+    assert.throws(() => s.expandCapacity(1, value));
+  }
+  assert.equal(JSON.stringify(s.getStateSnapshot()), before);
+  assert.throws(() => new LiveSpecEngine(10, 11), /Genesis/);
+  assert.throws(() => new LiveSpecEngine(-1, 0));
+});
+test('zero net flow is contraction and reset restores a clean model', () => {
+  const s = new LiveSpecEngine();
+  s.advanceEpoch(1);
+  assert.equal(s.policyRegime, 'Expansion');
+  s.advanceEpoch(0);
+  assert.equal(s.policyRegime, 'Contraction');
+  s.advanceEpoch(-1);
+  assert.equal(s.policyRegime, 'Contraction');
+  assert.throws(() => s.advanceEpoch(NaN), /finite/);
+  s.createCharter('Alice');
+  s.reset();
+  assert.equal(s.charters.length, 0);
+  assert.equal(s.branches.length, 0);
+  assert.equal(s.remainingIssuanceBudget, 900_000_000);
 });

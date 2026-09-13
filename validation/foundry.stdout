@@ -1,0 +1,36 @@
+No files changed, compilation skipped
+
+Ran 7 tests for test/unit/LaunchModel.t.sol:LaunchModelTest
+[PASS] testBuyAtCurrentPriceWithoutRepricingPreviousPurchase() (gas: 1218375)
+[PASS] testFuzzPriceNeverRises(uint256,uint256) (runs: 256, μ: 323491, ~: 322927)
+[PASS] testLastBranchBurnIsTerminalAndInvalidChartersCannotExpand() (gas: 1006188)
+[PASS] testLicenceBurnDeliveryAndPerAuctionLimit() (gas: 1634870)
+[PASS] testRejectRisingScheduleAndUnknownAuction() (gas: 108625)
+[PASS] testTenBranchCapAndZeroFlowContraction() (gas: 2106376)
+[PASS] testTimeWindowSlippageAndFundsFailuresDoNotConsumeSupply() (gas: 540673)
+Suite result: ok. 7 passed; 0 failed; 0 skipped; finished in 7.00ms (9.84ms CPU time)
+
+Ran 1 test for test/invariant/ProtocolInvariant.t.sol:ProtocolInvariantTest
+[PASS]
+ProtocolInvariantTest invariants:
+[PASS] invariant_AccountingConservation
+[PASS] invariant_CharterLifecycle
+[PASS] invariant_FeeBounds
+[PASS] invariant_SupplyHardCap
+ ProtocolInvariantTest invariants (runs: 64, calls: 2048, reverts: 0)
+
+╭-----------------+----------------+-------+---------+----------╮
+| Contract        | Selector       | Calls | Reverts | Discards |
++===============================================================+
+| ProtocolHandler | accrueIssuance | 465   | 0       | 0        |
+|-----------------+----------------+-------+---------+----------|
+| ProtocolHandler | createCharter  | 510   | 0       | 0        |
+|-----------------+----------------+-------+---------+----------|
+| ProtocolHandler | openBranch     | 529   | 0       | 0        |
+|-----------------+----------------+-------+---------+----------|
+| ProtocolHandler | resolveBranch  | 544   | 0       | 0        |
+╰-----------------+----------------+-------+---------+----------╯
+
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 476.46ms (475.08ms CPU time)
+
+Ran 2 test suites in 478.43ms (483.46ms CPU time): 8 tests passed, 0 failed, 0 skipped (8 total tests)

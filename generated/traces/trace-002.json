@@ -88,5 +88,5 @@
     }
   ],
   "kind": "AUTHORED_EXAMPLE",
-  "note": "Illustrative state transitions from the legacy model. No tests were executed to produce this trace."
+  "note": "Illustrative low-level fixture transitions. Setup uses custom capacity and supply and omits fees. No tests were executed to produce this trace."
 }

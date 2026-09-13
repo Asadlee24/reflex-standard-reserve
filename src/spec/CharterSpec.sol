@@ -29,7 +29,7 @@ contract CharterSpec {
      */
     function createCharter(address owner, uint256 initialCapacity) external returns (uint256 charterId) {
         if (owner == address(0)) revert InvalidOwner();
-        require(initialCapacity > 0, "Capacity must be > 0");
+        require(initialCapacity > 0 && initialCapacity <= 10, "Capacity must be 1 to 10");
 
         charterId = nextCharterId++;
         charters[charterId] = SpecTypes.Charter({
@@ -67,9 +67,10 @@ contract CharterSpec {
         SpecTypes.Charter storage c = charters[charterId];
         require(c.activeBranches > 0, "No active branches to remove");
         c.activeBranches -= 1;
+        c.maxBranches -= 1; // Retirement consumes this capacity; a replacement needs a new licence.
         if (c.activeBranches == 0) {
-            c.status = SpecTypes.CharterStatus.Dormant;
-            emit CharterStatusChanged(charterId, SpecTypes.CharterStatus.Dormant);
+            c.status = SpecTypes.CharterStatus.Burned;
+            emit CharterStatusChanged(charterId, SpecTypes.CharterStatus.Burned);
         }
     }
 
@@ -78,23 +79,21 @@ contract CharterSpec {
      */
     function expandCapacity(uint256 charterId, uint256 additionalCapacity) external {
         SpecTypes.Charter storage c = charters[charterId];
-        if (c.status == SpecTypes.CharterStatus.Burned) {
+        if (c.status != SpecTypes.CharterStatus.Active) {
             revert CharterNotActive(charterId, c.status);
         }
+        require(additionalCapacity > 0 && additionalCapacity <= 10 - c.maxBranches, "Capacity exceeds 10");
         c.maxBranches += additionalCapacity;
-        if (c.status == SpecTypes.CharterStatus.Dormant) {
-            c.status = SpecTypes.CharterStatus.Active;
-            emit CharterStatusChanged(charterId, SpecTypes.CharterStatus.Active);
-        }
         emit CharterCapacityExpanded(charterId, c.maxBranches);
     }
 
     /**
-     * @notice Permanently burns/destroys a dormant Charter.
+     * @notice Low-level fixture cleanup. Normal last-branch retirement already burns the Charter.
      * @dev Enforces INV-CHARTER-001.
      */
     function destroyCharter(uint256 charterId) external {
         SpecTypes.Charter storage c = charters[charterId];
+        require(c.id != 0 && c.status != SpecTypes.CharterStatus.Burned, "Invalid or burned Charter");
         if (c.activeBranches > 0) {
             revert CannotDestroyActiveCharter(charterId, c.activeBranches);
         }

@@ -32,11 +32,17 @@ contract BranchSpec {
         standardToken = StandardSpec(_standardToken);
     }
 
+    // High-level entry: Charter plus its first branch in the same transaction.
+    function createCharter(address owner, uint256 currentEpoch) external returns (uint256 charterId) {
+        charterId = charterContract.createCharter(owner, 1);
+        openBranch(charterId, currentEpoch);
+    }
+
     /**
      * @notice Activates a new operational Branch under a Charter.
      * @dev Enforces SR-BRANCH-001 & INV-BRANCH-001.
      */
-    function openBranch(uint256 charterId, uint256 currentEpoch) external returns (uint256 branchId) {
+    function openBranch(uint256 charterId, uint256 currentEpoch) public returns (uint256 branchId) {
         charterContract.registerBranchAddition(charterId);
 
         branchId = nextBranchId++;

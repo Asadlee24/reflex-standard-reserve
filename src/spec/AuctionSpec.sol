@@ -3,89 +3,103 @@ pragma solidity 0.8.24;
 
 import {StandardSpec} from "./StandardSpec.sol";
 import {CharterSpec} from "./CharterSpec.sol";
+import {BranchSpec} from "./BranchSpec.sol";
+import {SpecTypes} from "./SpecTypes.sol";
 
 /**
  * @title AuctionSpec
- * @notice Reference specification for Expansion Licence and Charter auctions.
- * @author Asad Lee (https://github.com/Asadlee24)
- * @dev Corresponds to Source Rules: SR-AUCTION-001, SR-AUCTION-002, INV-AUCTION-001.
+ * @author Asad Lee
+ * @notice Research-only Dutch purchase state machine. Never deploy with real funds.
+ * @dev The explicit monotone schedule is a discrete abstraction, NOT the official
+ * exponential implementation or a Genesis price prediction. Do not mix daily and
+ * Genesis parameters. ETH is a simulated ledger. No bids, escrow or final-price rebates.
+ * Fixture setters are intentionally permissionless. This is not production code.
  */
 contract AuctionSpec {
+    struct PricePoint { uint256 offset; uint256 price; }
     struct Auction {
-        uint256 id;
-        bool isExpansionLicence; // true = Licence, false = Charter
-        uint256 targetId; // Charter ID if licence
-        uint256 capacityUnits;
-        uint256 reservePrice;
-        address highestBidder;
-        uint256 highestBid;
-        bool settled;
+        bool exists;
+        bool isExpansionLicence;
+        uint256 startsAt;
+        uint256 duration;
+        uint256 supply;
+        uint256 sold;
+        uint256 proceeds;
     }
-
     StandardSpec public immutable standardToken;
     CharterSpec public immutable charterContract;
-
+    BranchSpec public immutable branchContract;
     uint256 public nextAuctionId = 1;
+    uint256 public ethProceeds;
     mapping(uint256 => Auction) public auctions;
+    mapping(uint256 => PricePoint[]) private schedules;
+    mapping(address => uint256) public ethBalances;
+    mapping(uint256 => mapping(uint256 => uint256)) public licencesPurchased;
+    event Purchased(uint256 indexed auctionId, address indexed buyer, uint256 price, uint256 charterId);
 
-    event AuctionCreated(uint256 indexed auctionId, bool isExpansionLicence, uint256 reservePrice);
-    event BidPlaced(uint256 indexed auctionId, address indexed bidder, uint256 amount);
-    event AuctionSettled(uint256 indexed auctionId, address indexed winner, uint256 winningBid);
-
-    error AuctionAlreadySettled(uint256 auctionId);
-    error BidBelowReserve(uint256 bid, uint256 reserve);
-    error BidNotHigher(uint256 bid, uint256 currentHighest);
-
-    constructor(address _standardToken, address _charterContract) {
-        standardToken = StandardSpec(_standardToken);
-        charterContract = CharterSpec(_charterContract);
+    constructor(address token, address charter, address branch) {
+        standardToken = StandardSpec(token);
+        charterContract = CharterSpec(charter);
+        branchContract = BranchSpec(branch);
     }
-
-    function createAuction(bool isLicence, uint256 targetCharterId, uint256 capacity, uint256 reserve) external returns (uint256 auctionId) {
-        auctionId = nextAuctionId++;
-        auctions[auctionId] = Auction({
-            id: auctionId,
-            isExpansionLicence: isLicence,
-            targetId: targetCharterId,
-            capacityUnits: capacity,
-            reservePrice: reserve,
-            highestBidder: address(0),
-            highestBid: 0,
-            settled: false
-        });
-        emit AuctionCreated(auctionId, isLicence, reserve);
+    function creditEthFixture(address buyer, uint256 amount) external {
+        require(buyer != address(0), "Invalid buyer");
+        ethBalances[buyer] += amount;
     }
-
-    function bid(uint256 auctionId, address bidder, uint256 amount) external {
-        Auction storage a = auctions[auctionId];
-        if (a.settled) revert AuctionAlreadySettled(auctionId);
-        if (amount < a.reservePrice) revert BidBelowReserve(amount, a.reservePrice);
-        if (amount <= a.highestBid) revert BidNotHigher(amount, a.highestBid);
-
-        a.highestBidder = bidder;
-        a.highestBid = amount;
-        emit BidPlaced(auctionId, bidder, amount);
-    }
-
-    /**
-     * @notice Settles auction and awards capacity / charter.
-     * @dev Enforces SR-AUCTION-002 & INV-AUCTION-001.
-     */
-    function settle(uint256 auctionId) external {
-        Auction storage a = auctions[auctionId];
-        if (a.settled) revert AuctionAlreadySettled(auctionId);
-        require(a.highestBidder != address(0), "No bids to settle");
-
-        a.settled = true;
-
-        if (a.isExpansionLicence) {
-            // Burn bid tokens as licence consideration
-            standardToken.burn(a.highestBidder, a.highestBid);
-            charterContract.expandCapacity(a.targetId, a.capacityUnits);
-        } else {
-            charterContract.createCharter(a.highestBidder, a.capacityUnits);
+    function createAuction(bool isLicence, uint256 startsAt, uint256 duration, uint256 supply, PricePoint[] calldata points)
+        external returns (uint256 id)
+    {
+        require(duration > 0 && supply > 0 && points.length > 0, "Invalid auction");
+        require(startsAt <= type(uint256).max - duration, "Invalid end time");
+        require(points[0].offset == 0, "Schedule must start at zero");
+        id = nextAuctionId++;
+        for (uint256 i; i < points.length; ++i) {
+            require(points[i].price > 0 && points[i].offset < duration, "Invalid price point");
+            if (i > 0) {
+                require(points[i].offset > points[i - 1].offset, "Offsets must increase");
+                require(points[i].price <= points[i - 1].price, "Price must not increase");
+            }
+            schedules[id].push(points[i]);
         }
-
-        emit AuctionSettled(auctionId, a.highestBidder, a.highestBid);
+        auctions[id] = Auction(true, isLicence, startsAt, duration, supply, 0, 0);
+    }
+    function currentPrice(uint256 id) public view returns (uint256) {
+        Auction memory a = auctions[id];
+        require(a.exists, "Unknown auction");
+        uint256 elapsed = block.timestamp > a.startsAt ? block.timestamp - a.startsAt : 0;
+        PricePoint[] storage points = schedules[id];
+        uint256 price = points[0].price;
+        for (uint256 i = 1; i < points.length && points[i].offset <= elapsed; ++i) price = points[i].price;
+        return price;
+    }
+    // Charge the current price and deliver one unit atomically. Expired supply does not roll over.
+    function purchase(uint256 id, address buyer, uint256 targetCharter, uint256 maxPrice)
+        external returns (uint256 charterId, uint256 paid)
+    {
+        Auction storage a = auctions[id];
+        require(a.exists, "Unknown auction");
+        require(buyer != address(0), "Invalid buyer");
+        require(block.timestamp >= a.startsAt && block.timestamp < a.startsAt + a.duration, "Auction not open");
+        require(a.sold < a.supply, "Sold out");
+        paid = currentPrice(id);
+        require(paid <= maxPrice, "Price exceeds limit");
+        a.sold += 1;
+        a.proceeds += paid;
+        if (a.isExpansionLicence) {
+            SpecTypes.Charter memory c = charterContract.getCharter(targetCharter);
+            require(c.owner == buyer && c.status == SpecTypes.CharterStatus.Active, "Invalid target Charter");
+            require(licencesPurchased[id][targetCharter] < 3, "Daily licence limit");
+            licencesPurchased[id][targetCharter] += 1;
+            standardToken.burn(buyer, paid);
+            charterContract.expandCapacity(targetCharter, 1);
+            branchContract.openBranch(targetCharter, 0); // Epoch metadata is outside this fixture.
+            charterId = targetCharter;
+        } else {
+            require(ethBalances[buyer] >= paid, "Insufficient simulated ETH");
+            ethBalances[buyer] -= paid;
+            ethProceeds += paid; // Downstream vault routing is outside this fixture.
+            charterId = branchContract.createCharter(buyer, 0);
+        }
+        emit Purchased(id, buyer, paid, charterId);
     }
 }

@@ -9,6 +9,7 @@ import {SpecTypes} from "./SpecTypes.sol";
  * @author Asad Lee (https://github.com/Asadlee24)
  * @dev Corresponds to Source Rules: SR-POLICY-001, SR-POLICY-002, SR-POLICY-003, SR-POLICY-004.
  */
+// Multiplier values and response below are illustrative fixture assumptions, not launch parameters.
 contract PolicySpec {
     uint256 public constant SCALE = 1e18;
     uint256 public constant MIN_MULTIPLIER = 0.5e18; // 0.5x
@@ -43,7 +44,7 @@ contract PolicySpec {
         currentEpoch += 1;
         lastEpochTimestamp = block.timestamp;
 
-        if (netEthFlow >= 0) {
+        if (netEthFlow > 0) {
             currentRegime = SpecTypes.PolicyRegime.Expansion;
             // Bound multiplier to [1.0x, 2.5x] in expansion
             policyMultiplier = 1e18 + (uint256(netEthFlow) > 1e18 ? 0.5e18 : (uint256(netEthFlow) / 2));
@@ -51,7 +52,7 @@ contract PolicySpec {
         } else {
             currentRegime = SpecTypes.PolicyRegime.Contraction;
             // Bound multiplier to [0.5x, 1.0x] in contraction
-            uint256 absFlow = uint256(-netEthFlow);
+            uint256 absFlow = netEthFlow == 0 ? 0 : uint256(-(netEthFlow + 1)) + 1;
             if (absFlow > 0.5e18) {
                 policyMultiplier = MIN_MULTIPLIER;
             } else {

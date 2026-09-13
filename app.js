@@ -24,7 +24,7 @@ const state = {
   selectedRuleId: 'SR-SUPPLY-001',
   activeInvFilter: 'ALL',
   tracePlayer: null,
-  sandbox: new LiveSpecEngine(100_000_000, 10_000_000),
+  sandbox: new LiveSpecEngine(),
 };
 
 // Formatters
@@ -420,9 +420,9 @@ function initSandbox() {
 
   $('#actCreateCharter')?.addEventListener('click', () => {
     try {
-      state.sandbox.createCharter('0xBanker', 3);
+      state.sandbox.createCharter('0xBanker');
       updateSandboxUI();
-      showToast('Charter created (Max: 3)');
+      showToast('Charter created with its first branch');
     } catch (e) {
       showToast(e.message);
     }
@@ -432,12 +432,16 @@ function initSandbox() {
     try {
       const activeCharters = state.sandbox.charters.filter((c) => c.status === 'Active');
       if (!activeCharters.length) {
-        state.sandbox.createCharter('0xBanker', 3);
+        state.sandbox.createCharter('0xBanker');
+        updateSandboxUI();
+        showToast('Charter created with its first branch');
+        return;
       }
-      const charter = state.sandbox.charters.find((c) => c.status === 'Active' && c.activeBranches < c.maxBranches);
+      const charter = state.sandbox.charters.find((c) => c.status === 'Active' && c.activeBranches < 10);
       if (!charter) {
         throw new Error('All active charters at capacity. Create a new charter first.');
       }
+      state.sandbox.expandCapacity(charter.id);
       state.sandbox.openBranch(charter.id);
       updateSandboxUI();
       showToast(`Branch opened under Charter #${charter.id}`);

@@ -21,6 +21,8 @@ test('an authored export never fabricates execution evidence or references nonex
       assert.equal(result[key], null, key);
     }
     const invariants = read('invariants.json');
+    const ruleIds = new Set(read('spec-rules.json').map(rule => rule.id));
+    assert.ok(invariants.every(invariant => ruleIds.has(invariant.sourceRule)), 'Every candidate links to a source rule');
     assert.ok(invariants.length > 0);
     assert.ok(invariants.every(i => i.status === 'UNVERIFIED' && i.runs === null && i.depth === null));
     const harness = readFileSync(new URL('../test/invariant/ProtocolInvariant.t.sol', import.meta.url), 'utf8');

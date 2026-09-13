@@ -98,7 +98,7 @@
         "activeBranches": 0,
         "unminted": "0",
         "circulating": "10.5M",
-        "charterStatus": "Dormant"
+        "charterStatus": "Burned"
       },
       "invariantsChecked": [
         "INV-BRANCH-002",
@@ -132,5 +132,5 @@
     }
   ],
   "kind": "AUTHORED_EXAMPLE",
-  "note": "Illustrative state transitions from the legacy model. No tests were executed to produce this trace."
+  "note": "Illustrative low-level fixture transitions. Setup uses custom capacity and supply and omits fees. No tests were executed to produce this trace."
 }

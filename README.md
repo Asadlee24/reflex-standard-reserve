@@ -10,7 +10,7 @@ REFLEX explores how assumed exit pressure, fees, and participant behavior intera
 
 REFLEX is a research prototype. It is not an audit, a formal proof, or a verified implementation of Standard Reserve. Known differences between the model and the current design are documented in the [launch review](research/LAUNCH_REVIEW.md).
 
-The invariant registry contains candidate properties. No Foundry execution record is attached. The registry export does not run tests. Its results are `NOT_RUN`, run metrics are `null`, and individual properties are `UNVERIFIED`.
+The invariant registry contains candidate properties. Selected model tests have an execution record in [validation/latest.json](validation/latest.json); this does not verify every registry candidate. The registry export does not run tests. Its results are `NOT_RUN`, run metrics are `null`, and individual properties are `UNVERIFIED`.
 
 Trace Lab displays authored examples, not captured fuzz runs. The browser sandbox computes checks against its current simulated state; those results concern that model state only. They do not establish properties of deployed contracts.
 
@@ -40,7 +40,7 @@ forge build
 forge test -vvv
 ```
 
-These are commands to execute, not statements that execution has succeeded. The checked Foundry file defines three invariant functions. Other registry entries do not yet have implemented Foundry mappings. Node tests of the separate model in `tests/speclab.test.mjs` do not establish Solidity coverage or browser-engine parity.
+The Foundry harness defines four invariant functions and seven focused unit/fuzz tests. Node tests import `lib/spec-engine.js`, the actual browser engine. See [validation](research/VALIDATION.md) for reproducible commands and raw results. Neither suite establishes production-contract equivalence.
 
 ## Project structure
 
@@ -57,7 +57,7 @@ These are commands to execute, not statements that execution has succeeded. The 
 
 ## Future work
 
-Reconcile the reference model with current primary sources, publish reproducible execution records, establish browser/test parity, and only then build a differential adapter for the verified official deployment. That adapter is not implemented.
+The Dutch purchase semantics, terminal Charter burn, initial branch, branch cap and supply defaults are corrected. Official auction curve arithmetic, complete policy/fee integration and a verified-deployment differential adapter remain future work. This is not a Genesis mint price predictor.
 
 The deployed demo can lag the repository while changes await merge and deployment.
 

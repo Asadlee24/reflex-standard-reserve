@@ -1,38 +1,40 @@
 # Launch review and model limits
 
-Reviewed on 13 September 2026. REFLEX remains an independent prototype with known differences from the current Standard Reserve design.
+Reviewed 13 September 2026 against the [official whitepaper v0.1](https://www.standardreserve.xyz/whitepaper/). This is a published design overview, not deployed-code verification.
 
-## Current primary references
+## Corrected behavior
 
-The [official mint page](https://www.standardreserve.xyz/app/mint/) provides the eligibility checker. The [mint announcement](https://x.com/standard_rsv/status/2098969964283846751) specifies a 0.15 ETH whitelist liquidity fee. The [schedule](https://x.com/standard_rsv/status/2098969968201359736) describes a public Dutch auction for remaining Genesis supply after the whitelist period. It opens at 1.25 ETH and descends toward 0.15 ETH over 30 minutes.
-
-The announcement uses EST. An official UTC clarification is needed before treating a local timezone conversion as final.
-
-## Scope of the published design
-
-The [whitepaper v0.1](https://www.standardreserve.xyz/whitepaper/) explicitly describes itself as a design overview. It is not an implementation specification. These comparisons concern published design statements, not independently verified deployed behavior.
-
-| Topic | Published design | REFLEX limitation |
+| Topic | Published design | REFLEX implementation |
 | --- | --- | --- |
-| Auctions | Sections 7 and 8 describe Dutch auctions. | The existing Solidity auction model and historical references use a sealed-bid design. This model has not been updated to match. |
-| Final branch | Sections 6 and 9 end the charter when its last branch is retired. | The JavaScript reference model moves it to Dormant. That is a known mismatch, not a protocol finding. |
-| Mint proceeds | The launch announcement allocates all mint proceeds to liquidity and vaults. | Keep this separate from the regular fee split described in section 11, which includes a 15% team share. |
-| Transferability | Section 12 describes charters as initially soulbound. | A future transfer switch does not make launch charters transferable. |
+| Daily auctions | Sections 7–8: falling-price Dutch purchases, instant allocation, no final-price refunds | `AuctionSpec` purchases at the current configured price, caps supply, rejects expired sales and preserves earlier receipts. Licence payments burn STANDARD. |
+| Auction curve | Sections 7–8: exponential decay for daily auctions | The Solidity model uses explicit decreasing time/price points as a discrete abstraction. It does not reproduce the official fixed-point curve or predict Genesis prices. |
+| Charter lifecycle | Sections 6 and 9: retire the final branch and burn the Charter | JavaScript and Solidity make the final exit terminal. Capacity consumed by retirement cannot be reused without another licence. |
+| Entry and branch cap | Sections 6–7: first branch included, up to ten branches | Browser entry and Solidity `BranchSpec.createCharter` include one branch. Capacity is capped at ten. `CharterSpec.createCharter` remains a low-level setup primitive used by the wrapper and fixtures. |
+| Supply | Section 3: 1B cap, 100M genesis liquidity, 900M issuance budget | Browser defaults and Solidity fixture defaults match these figures. Small test/example fixtures deliberately use custom sizes. |
+| Zero flow | Section 5: zero flow is contraction | Corrected in JavaScript and Solidity. |
 
-## Evidence correction
+## Genesis is separate from daily auctions
 
-Previous generated metadata included fixed success flags, a fixed source commit, fuzz counts and duration. Those values were not linked to an execution record. They have been removed. Registry export now reports `NOT_RUN` with null execution metrics, and authored trace examples report `ILLUSTRATIVE` with unevaluated steps.
+The [mint announcement](https://x.com/standard_rsv/status/2098969964283846751) and [schedule](https://x.com/standard_rsv/status/2098969968201359736) describe the whitelist and remaining Genesis supply. The recorded announcement describes a 0.15 ETH WL liquidity fee and a 30-minute public auction starting at 1.25 ETH and descending toward 0.15 ETH. Use the [official mint page](https://www.standardreserve.xyz/app/mint/) to confirm eligibility and current terms.
 
-The source matrix and earlier research notes are historical model assumptions under review. `NEEDS_REVIEW` does not imply an error in every rule; it means source mapping and implementation equivalence have not been established.
+These announced figures are documentation, not executable Genesis configuration. No Genesis decay formula, refund rule, exact UTC start, wallet allocation or contract address is guessed by the model. The announcement uses EST; clarify the intended offset before converting it. Remaining public supply depends on actual WL mints, not just the number of WL wallets.
 
-The sandbox calculates state checks in the browser. The results refer only to its simulated model state. Node test success is separate from a Foundry run, and neither is a formal proof of the official protocol.
+Genesis proceeds go to initial liquidity and vaults. Do not apply the regular section 11 fee split, including its team share, to Genesis. Charters start soulbound; a possible future transfer switch does not establish resale availability at launch.
 
-## Remaining work
+## Explicit abstractions
 
-1. Reconcile the auction and charter lifecycle models with primary sources.
-2. Test the same JavaScript engine that the browser imports.
-3. Complete and execute the Solidity harness with actual result capture.
-4. Map each result to an exact implementation, command, source commit and run record.
-5. Build a differential adapter only after the official implementation is independently identified.
+- The Solidity files are permissionless reference fixtures, not deployable financial contracts. Auction ETH is a simulated balance ledger. No actual ETH is accepted or routed.
+- A licence auction fixture represents one day. Its three-licence limit is per Charter per auction; a production daily scheduler and global day accounting are absent.
+- Auction points and durations must be supplied explicitly. No fixed Genesis mint schedule or sell-out forecast is provided.
+- Browser branch additions allocate fixture licences without debiting payment. Browser and BranchSpec withdrawals demonstrate gross accrual accounting and omit the resolution fee integration. The independent ResolutionSpec math tests do not establish integrated withdrawal correctness.
+- The browser uses integer whole-token amounts, not Solidity wei precision. It rejects unsafe and invalid numeric inputs.
+- The policy multiplier formula remains illustrative. Only zero-flow classification was corrected; trailing-epoch issuance, cooldowns and launch bounds are not claimed to match production.
+- The model does not predict profits, NFT floor prices or actual participant behavior. There is no official-contract differential adapter.
 
-No security vulnerability in the official protocol is asserted by these model differences.
+## Evidence
+
+Registry export is still authored data: `NOT_RUN`, null run metrics and `UNVERIFIED` candidates. It must not manufacture passing counts. Trace Lab examples are illustrative fixtures, not captured fuzz traces. Source mappings outside the specifically reviewed rules remain `NEEDS_REVIEW`.
+
+The current Node tests import the same engine as the browser. The Foundry handler is explicitly targeted and exercises creation, expansion, accrual and retirement. Unit tests separately exercise auction timing, supply, payment, failures, burns and terminal lifecycle.
+
+See [validation](VALIDATION.md) and `validation/latest.json` for actual execution records. A successful run validates the listed reference-model tests, not the complete registry or the official protocol.
