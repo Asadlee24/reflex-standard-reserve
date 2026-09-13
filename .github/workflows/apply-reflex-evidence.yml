@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   apply-patch:
-    if: github.event.head_commit.message == 'chore: run evidence patch applicator'
+    if: "${{ github.event.head_commit.message == 'chore: rerun evidence patch applicator' }}"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout branch
